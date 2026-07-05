@@ -1,0 +1,157 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Nothing+You+Could+Do&display=swap");
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-elevated: var(--elevated);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui;
+  --font-serif: var(--font-serif), Georgia, ui-serif, serif;
+  --font-hand: var(--font-hand), cursive;
+  --shadow-soft: 0 16px 50px rgba(0, 79, 59, 0.08);
+  --shadow-postcard: 0 10px 30px rgba(0, 79, 59, 0.1), 0 2px 6px rgba(0, 79, 59, 0.06);
+}
+
+:root {
+  --background: #fef9ee;
+  --foreground: #21312a;
+  --card: #fffdf6;
+  --card-foreground: #21312a;
+  --primary: #004f3b;
+  --primary-foreground: #fef9ee;
+  --secondary: #fef3c6;
+  --secondary-foreground: #5c4a17;
+  --muted: #f6eed9;
+  --muted-foreground: #7b7361;
+  --accent: #e17100;
+  --accent-foreground: #fffdf6;
+  --destructive: #9c2b1f;
+  --destructive-foreground: #fef9ee;
+  --border: #ece2c9;
+  --input: #e6dabb;
+  --ring: #004f3b;
+  --gold: #e6c65e;
+  --elevated: #dedad4;
+  --font-sans: "Nunito";
+  --font-serif: "Playfair Display";
+  --font-hand: "Nothing You Could Do";
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
+
+.paper-texture {
+  background-image: radial-gradient(rgba(0, 79, 59, 0.035) 0.7px, transparent 0.7px);
+  background-size: 14px 14px;
+}
+
+.postmark-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    currentColor 0,
+    currentColor 1.5px,
+    transparent 1.5px,
+    transparent 6px
+  );
+}
+
+@layer components {
+  .range-selector-input {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    color: transparent;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .range-selector-input:focus {
+    outline: none;
+  }
+
+  .range-selector-input::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    height: 3rem;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+  }
+
+  .range-selector-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-top: 0.375rem;
+    background: transparent;
+    border: 0;
+    border-radius: 9999px;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .range-selector-input::-moz-range-track {
+    height: 3rem;
+    background: transparent;
+    border: 0;
+    color: transparent;
+  }
+
+  .range-selector-input::-moz-range-progress {
+    background: transparent;
+    border: 0;
+  }
+
+  .range-selector-input::-moz-range-thumb {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: transparent;
+    border: 0;
+    border-radius: 9999px;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+}

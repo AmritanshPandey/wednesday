@@ -1,0 +1,702 @@
+"use client";
+
+import * as React from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  IconBrandLinkedinFilled,
+  IconCircleCheckFilled,
+  IconPhoto,
+  IconPencil,
+  IconPlus
+} from "@tabler/icons-react";
+import { ChipMultiSelect, ChipSelect } from "@/components/ui/chip";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
+import { RangeSelector } from "@/components/ui/range-selector";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { Callout, FieldBlock, StepShell, SETUP_STEP_COUNT } from "@/components/setup/step-shell";
+import { reachSetupStep, toggleDealBreaker, updatePreferences, updateProfile } from "@/lib/demo/demo-actions";
+import { useDemoState } from "@/lib/demo/demo-store";
+import type { Profile } from "@/types/profile";
+import type { PreferenceSectionKey } from "@/types/preferences";
+import {
+  CHILDREN_VIEWS,
+  CITIES,
+  COMMUNICATION_STYLES,
+  CONFLICT_STYLES,
+  DRINKING,
+  FINANCIAL_INDEPENDENCE,
+  FITNESS,
+  FOODS,
+  GENDERS,
+  INTENTS,
+  INTERESTS,
+  LANGUAGES,
+  LIFESTYLE_EXPECTATIONS,
+  LIVING_AFTER_MARRIAGE,
+  PARTNER_SUPPORT,
+  PARTNER_WITH_KIDS,
+  PREF_CHILDREN,
+  PREF_CITY,
+  PREF_DRINKING,
+  PREF_FINANCE,
+  PREF_FOOD,
+  PREF_RELIGION,
+  PREF_RELOCATION,
+  PREF_SMOKING,
+  PREF_TIMELINE,
+  PRIORITIES,
+  QUALIFICATIONS,
+  RELIGIONS,
+  RELOCATION,
+  SMOKING,
+  TAX_BRACKETS,
+  TIMELINES,
+  WEEKENDS,
+  WORK_LIVES,
+  WORK_STATUSES
+} from "@/lib/profile-options";
+
+const STEP_META: Record<number, { title: string; subtitle: string }> = {
+  1: { title: "A little about you", subtitle: "A few details to help us find compatible people." },
+  2: { title: "What you do", subtitle: "Share a little about your work and education." },
+  3: { title: "What brings you here?", subtitle: "Help us introduce you to people who want something similar." },
+  4: { title: "Financial outlook", subtitle: "Shared expectations matter for long-term compatibility. This is used privately, to improve introductions." },
+  5: { title: "Your everyday life", subtitle: "The small day-to-day things matter too." },
+  6: { title: "How you show up", subtitle: "Help people understand how you communicate, care, and handle real life together." },
+  7: { title: "Looking ahead", subtitle: "Share the plans and possibilities that will shape your life together." },
+  8: { title: "The things you enjoy", subtitle: "Add the little things that make you, you." },
+  9: { title: "A little more of your world", subtitle: "Choose up to 3 visual prompts that feel like you." },
+  10: { title: "Put a face to your profile", subtitle: "Add a few clear photos so people can get a real sense of you." },
+  11: { title: "Who would you like to meet?", subtitle: "Set the things that matter most. You can change them anytime." }
+};
+
+const MIN_PROFILE_AGE = 18;
+const MAX_PROFILE_AGE = 80;
+const MIN_PREFERENCE_AGE = 22;
+const MAX_PREFERENCE_AGE = 35;
+const MAX_VISUAL_PROMPTS = 3;
+const MAX_PROFILE_PHOTOS = 4;
+const MOMENT_CONTEXT_LIMIT = 150;
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function toDateInputValue(date: Date) {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function dateYearsAgo(years: number) {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - years);
+  return toDateInputValue(date);
+}
+
+function birthDateFromAge(age: number) {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - age);
+  date.setMonth(0, 1);
+  return toDateInputValue(date);
+}
+
+function calculateAge(dateOfBirth: string) {
+  const [year, month, day] = dateOfBirth.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  const parsedDate = new Date(year, month - 1, day);
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const birthdayHasPassed =
+    today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
+
+  if (!birthdayHasPassed) age -= 1;
+  return age >= 0 ? age : null;
+}
+
+function normalizeOption(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function cleanCustomInterest(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function ImageUploadSlot({
+  src,
+  label,
+  onPreview,
+  className,
+  action = "add"
+}: {
+  src?: string;
+  label: string;
+  onPreview: (url: string) => void;
+  className?: string;
+  action?: "add" | "edit";
+}) {
+  const [error, setError] = React.useState<string | null>(null);
+
+  function onChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Use a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Choose an image under 5 MB.");
+      return;
+    }
+
+    onPreview(URL.createObjectURL(file));
+    setError(null);
+  }
+
+  return (
+    <div>
+      <label className="block">
+        <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={onChange} />
+        <span
+          className={`relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[18px] border-2 border-dashed border-primary bg-muted text-muted-foreground transition hover:bg-secondary ${className ?? ""}`}
+        >
+          {src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={src} alt={label} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <IconPhoto className="h-9 w-9" stroke={1.8} />
+          )}
+          <span className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-postcard">
+            {action === "edit" ? <IconPencil className="h-5 w-5" stroke={2.2} /> : <IconPlus className="h-7 w-7" stroke={2.2} />}
+          </span>
+        </span>
+      </label>
+      {error ? <p className="mt-2 text-xs font-semibold text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+export default function SetupStepPage() {
+  const params = useParams<{ step: string }>();
+  const router = useRouter();
+  const state = useDemoState();
+  const step = Number(params.step);
+  const profile = state.profile;
+  const [customInterest, setCustomInterest] = React.useState("");
+  const [activeMomentIndex, setActiveMomentIndex] = React.useState(0);
+  const interestOptions = React.useMemo(() => {
+    const base = new Set(INTERESTS.map(normalizeOption));
+    const custom = profile.interests.filter((interest) => !base.has(normalizeOption(interest)));
+    return [...INTERESTS, ...custom];
+  }, [profile.interests]);
+
+  React.useEffect(() => {
+    if (!Number.isInteger(step) || step < 1 || step > SETUP_STEP_COUNT) router.replace("/setup/1");
+  }, [step, router]);
+  if (!Number.isInteger(step) || step < 1 || step > SETUP_STEP_COUNT) return null;
+
+  const meta = STEP_META[step];
+  const birthDateValue = profile.dateOfBirth ?? birthDateFromAge(profile.age);
+  const ageFromBirthDate = calculateAge(birthDateValue);
+  const hasValidBirthDate =
+    ageFromBirthDate !== null && ageFromBirthDate >= MIN_PROFILE_AGE && ageFromBirthDate <= MAX_PROFILE_AGE;
+  const shownAge = hasValidBirthDate ? ageFromBirthDate : profile.age;
+  const minBirthDate = dateYearsAgo(MAX_PROFILE_AGE);
+  const maxBirthDate = dateYearsAgo(MIN_PROFILE_AGE);
+  const moments = profile.moments.length > 0 ? profile.moments : [{ title: "", caption: "" }];
+  const activeMoment = Math.min(activeMomentIndex, moments.length - 1);
+  const extraPhotoUrls = profile.extraPhotoUrls ?? [];
+
+  function next() {
+    reachSetupStep(step + 1);
+    router.push(step === SETUP_STEP_COUNT ? "/setup/review" : `/setup/${step + 1}`);
+  }
+
+  const set = (patch: Partial<Profile>) => updateProfile(patch);
+  const setBirthDate = (dateOfBirth: string) => {
+    const age = calculateAge(dateOfBirth);
+    set(age === null ? { dateOfBirth } : { dateOfBirth, age });
+  };
+  const toggleList = (key: "languages" | "weekend" | "priorities" | "interests") => (value: string) => {
+    const current = profile[key];
+    set({ [key]: current.includes(value) ? current.filter((item) => item !== value) : [...current, value] });
+  };
+  const addCustomInterest = () => {
+    const nextInterest = cleanCustomInterest(customInterest);
+    if (!nextInterest) return;
+
+    const existing =
+      interestOptions.find((interest) => normalizeOption(interest) === normalizeOption(nextInterest)) ?? nextInterest;
+    if (!profile.interests.some((interest) => normalizeOption(interest) === normalizeOption(existing))) {
+      set({ interests: [...profile.interests, existing] });
+    }
+    setCustomInterest("");
+  };
+  const updateMoment = (index: number, patch: Partial<Profile["moments"][number]>) => {
+    const current = profile.moments.length > 0 ? profile.moments : [{ title: "", caption: "" }];
+    const nextMoments = current.map((moment, itemIndex) => (itemIndex === index ? { ...moment, ...patch } : moment));
+    set({ moments: nextMoments });
+  };
+  const addMoment = () => {
+    const current = profile.moments.length > 0 ? profile.moments : [];
+    if (current.length >= MAX_VISUAL_PROMPTS) return;
+    set({ moments: [...current, { title: "", caption: "" }] });
+    setActiveMomentIndex(current.length);
+  };
+  const setPhotoAt = (index: number, url: string) => {
+    if (index === 0) {
+      set({ localPhotoUrl: url });
+      return;
+    }
+
+    const nextPhotos = [...extraPhotoUrls];
+    nextPhotos[index - 1] = url;
+    set({ extraPhotoUrls: nextPhotos });
+  };
+
+  return (
+    <StepShell
+      step={step}
+      title={meta.title}
+      subtitle={meta.subtitle}
+      onNext={next}
+      onSecondary={step === 9 || step === 10 ? next : undefined}
+      backHref={step === 1 ? "/" : `/setup/${step - 1}`}
+      nextLabel={step === SETUP_STEP_COUNT ? "Review my profile" : step === 9 || step === 10 ? "Continue" : "Next"}
+      secondaryLabel={step === 9 || step === 10 ? "Skip" : undefined}
+      nextDisabled={step === 1 && (profile.name.trim().length === 0 || !hasValidBirthDate)}
+      headerTitle={step === SETUP_STEP_COUNT ? "Partner preference" : "Profile setup"}
+      showStepProgress={step !== SETUP_STEP_COUNT}
+      stepCount={SETUP_STEP_COUNT - 1}
+    >
+      {step === 1 ? (
+        <>
+          <FieldBlock label="Your given name" help="Only your first name is shown.">
+            <Input value={profile.name} onChange={(event) => set({ name: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="Date of birth" help="Use your real date of birth. We will only show your age on your profile.">
+            <DatePicker
+              value={birthDateValue}
+              min={minBirthDate}
+              max={maxBirthDate}
+              onChange={setBirthDate}
+            />
+          </FieldBlock>
+          <Callout title={hasValidBirthDate ? `You're ${shownAge}` : "Enter a valid date of birth"}>
+            Make sure your date of birth is correct before moving on.
+          </Callout>
+          <FieldBlock label="Your gender">
+            <ChipSelect options={GENDERS} value={profile.gender} onChange={(value) => set({ gender: value })} />
+          </FieldBlock>
+          <FieldBlock label="City">
+            <ChipSelect options={CITIES} value={profile.city} onChange={(value) => set({ city: value })} />
+          </FieldBlock>
+          <FieldBlock label="Religion">
+            <ChipSelect options={RELIGIONS} value={profile.religion} onChange={(value) => set({ religion: value })} />
+          </FieldBlock>
+          <FieldBlock label="Languages you're comfortable in">
+            <ChipMultiSelect options={LANGUAGES} values={profile.languages} onToggle={toggleList("languages")} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 2 ? (
+        <>
+          <FieldBlock label="What best describes your work right now?">
+            <ChipSelect options={WORK_STATUSES} value={profile.workStatus} onChange={(value) => set({ workStatus: value })} />
+          </FieldBlock>
+          <FieldBlock label="What's your current role?">
+            <Input value={profile.role} onChange={(event) => set({ role: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="Which industry do you work in?">
+            <Input value={profile.industry} onChange={(event) => set({ industry: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="What does your work life usually look like?">
+            <ChipSelect options={WORK_LIVES} value={profile.workLife} onChange={(value) => set({ workLife: value })} />
+          </FieldBlock>
+          <FieldBlock label="Highest qualification">
+            <ChipSelect options={QUALIFICATIONS} value={profile.qualification} onChange={(value) => set({ qualification: value })} />
+          </FieldBlock>
+          <FieldBlock label="College or university">
+            <Input value={profile.college} onChange={(event) => set({ college: event.target.value })} />
+          </FieldBlock>
+          <div className="border-t border-dashed border-border pt-5">
+            <p className="text-sm font-semibold">Verify all of this info via LinkedIn</p>
+            <button
+              type="button"
+              disabled
+              className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#2867b2]/40 text-sm font-bold text-[#2867b2] opacity-60"
+            >
+              <IconBrandLinkedinFilled className="h-4 w-4" />
+              Connect LinkedIn — coming after the MVP
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {step === 3 ? (
+        <>
+          <FieldBlock label="What are you looking for?">
+            <div className="space-y-3">
+              {INTENTS.map((intent) => {
+                const selected = profile.intent === intent;
+                return (
+                  <button
+                    key={intent}
+                    type="button"
+                    onClick={() => set({ intent })}
+                    className={`flex w-full items-center gap-3 rounded-[16px] border px-4 py-4 text-left text-sm font-semibold transition ${
+                      selected ? "border-primary bg-secondary" : "border-gold bg-card hover:bg-secondary/60"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                        selected ? "border-primary" : "border-input"
+                      }`}
+                    >
+                      {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
+                    </span>
+                    {intent}
+                  </button>
+                );
+              })}
+            </div>
+          </FieldBlock>
+          <FieldBlock label="Marriage timeline">
+            <ChipSelect options={TIMELINES} value={profile.timeline} onChange={(value) => set({ timeline: value })} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 4 ? (
+        <>
+          <FieldBlock label="Current tax bracket" help="Never shown on your profile. Used only for compatibility.">
+            <ChipSelect options={TAX_BRACKETS} value={profile.taxBracket} onChange={(value) => set({ taxBracket: value })} />
+          </FieldBlock>
+          <FieldBlock label="Financial independence">
+            <ChipSelect
+              options={FINANCIAL_INDEPENDENCE}
+              value={profile.financialIndependence}
+              onChange={(value) => set({ financialIndependence: value })}
+            />
+          </FieldBlock>
+          <FieldBlock label="Lifestyle expectations">
+            <ChipSelect
+              options={LIFESTYLE_EXPECTATIONS}
+              value={profile.lifestyleExpectation}
+              onChange={(value) => set({ lifestyleExpectation: value })}
+            />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 5 ? (
+        <>
+          <FieldBlock label="Drinking">
+            <ChipSelect options={DRINKING} value={profile.drinking} onChange={(value) => set({ drinking: value })} />
+          </FieldBlock>
+          <FieldBlock label="Smoking">
+            <ChipSelect options={SMOKING} value={profile.smoking} onChange={(value) => set({ smoking: value })} />
+          </FieldBlock>
+          <FieldBlock label="Food preference">
+            <ChipSelect options={FOODS} value={profile.food} onChange={(value) => set({ food: value })} />
+          </FieldBlock>
+          <FieldBlock label="What does your ideal weekend usually look like?">
+            <ChipMultiSelect options={WEEKENDS} values={profile.weekend} onToggle={toggleList("weekend")} />
+          </FieldBlock>
+          <FieldBlock label="How does fitness fit into your life?">
+            <ChipSelect options={FITNESS} value={profile.fitness} onChange={(value) => set({ fitness: value })} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 6 ? (
+        <>
+          <FieldBlock label="How do you naturally show up?">
+            <ChipSelect
+              options={COMMUNICATION_STYLES}
+              value={profile.communication}
+              onChange={(value) => set({ communication: value })}
+            />
+          </FieldBlock>
+          <FieldBlock label="When something feels off, what do you usually do?">
+            <ChipSelect options={CONFLICT_STYLES} value={profile.conflict} onChange={(value) => set({ conflict: value })} />
+          </FieldBlock>
+          <FieldBlock label="What you appreciate most from a partner">
+            <ChipSelect options={PARTNER_SUPPORT} value={profile.partnerSupport} onChange={(value) => set({ partnerSupport: value })} />
+          </FieldBlock>
+          <FieldBlock label="What does a good relationship feel like to you?">
+            <Textarea value={profile.goodRelationship} onChange={(event) => set({ goodRelationship: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="What are you working on in yourself right now?">
+            <Textarea value={profile.workingOn} onChange={(event) => set({ workingOn: event.target.value })} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 7 ? (
+        <>
+          <FieldBlock label="How do you feel about having children?">
+            <ChipSelect options={CHILDREN_VIEWS} value={profile.children} onChange={(value) => set({ children: value })} />
+          </FieldBlock>
+          <FieldBlock label="Would you be open to a partner who already has children?">
+            <ChipSelect options={PARTNER_WITH_KIDS} value={profile.partnerWithKids} onChange={(value) => set({ partnerWithKids: value })} />
+          </FieldBlock>
+          <FieldBlock label="What kind of living arrangement do you imagine after marriage?">
+            <ChipSelect
+              options={LIVING_AFTER_MARRIAGE}
+              value={profile.livingAfterMarriage}
+              onChange={(value) => set({ livingAfterMarriage: value })}
+            />
+          </FieldBlock>
+          <FieldBlock label="Where are you open to moving?">
+            <ChipSelect options={RELOCATION} value={profile.relocation} onChange={(value) => set({ relocation: value })} />
+          </FieldBlock>
+          <FieldBlock label="What feels most important in the next few years?" help="Pick up to three.">
+            <ChipMultiSelect options={PRIORITIES} values={profile.priorities} onToggle={toggleList("priorities")} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 8 ? (
+        <>
+          <FieldBlock label="What do you enjoy doing?" help="Pick at least three.">
+            <div className="space-y-4">
+              <ChipMultiSelect options={interestOptions} values={profile.interests} onToggle={toggleList("interests")} />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={customInterest}
+                  onChange={(event) => setCustomInterest(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addCustomInterest();
+                    }
+                  }}
+                  placeholder="Add your own"
+                  aria-label="Add your own interest"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomInterest}
+                  disabled={cleanCustomInterest(customInterest).length === 0}
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <IconPlus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
+            </div>
+          </FieldBlock>
+          <FieldBlock label="What's a show or movie you always go back to?">
+            <Input value={profile.favouriteShow} onChange={(event) => set({ favouriteShow: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="What are you listening to lately?">
+            <Input value={profile.listeningTo} onChange={(event) => set({ listeningTo: event.target.value })} />
+          </FieldBlock>
+          <FieldBlock label="What can you talk about for hours?">
+            <Input value={profile.talkForHours} onChange={(event) => set({ talkForHours: event.target.value })} />
+          </FieldBlock>
+        </>
+      ) : null}
+
+      {step === 9 ? (
+        <>
+          <div>
+            <p className="mb-2.5 text-[15px] font-bold text-foreground">Add a moment</p>
+            <ImageUploadSlot
+              src={moments[activeMoment]?.imageUrl}
+              label={`Visual prompt ${activeMoment + 1}`}
+              className="aspect-[1.75]"
+              onPreview={(url) => updateMoment(activeMoment, { imageUrl: url })}
+            />
+          </div>
+
+          {moments.length > 1 ? (
+            <div className="flex flex-wrap gap-2">
+              {moments.map((moment, index) => (
+                <button
+                  key={`${moment.title ?? "moment"}-${index}`}
+                  type="button"
+                  onClick={() => setActiveMomentIndex(index)}
+                  className={`rounded-full border px-3 py-2 text-xs font-bold transition ${
+                    activeMoment === index ? "border-primary bg-primary text-primary-foreground" : "border-gold bg-card hover:bg-secondary"
+                  }`}
+                >
+                  Moment {index + 1}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <FieldBlock label="Prompt title" help="Give this moment a title">
+            <Input
+              value={moments[activeMoment]?.title ?? ""}
+              onChange={(event) => updateMoment(activeMoment, { title: event.target.value })}
+              placeholder="e.g. My kind of weekend"
+            />
+          </FieldBlock>
+
+          <FieldBlock label="Add a little context to this photo">
+            <Textarea
+              value={moments[activeMoment]?.caption ?? ""}
+              maxLength={MOMENT_CONTEXT_LIMIT}
+              onChange={(event) => updateMoment(activeMoment, { caption: event.target.value })}
+              className="min-h-40"
+            />
+            <p className="mt-2 text-right text-xs font-bold text-muted-foreground">
+              {(moments[activeMoment]?.caption ?? "").length}/{MOMENT_CONTEXT_LIMIT}
+            </p>
+          </FieldBlock>
+
+          <button
+            type="button"
+            onClick={addMoment}
+            disabled={moments.length >= MAX_VISUAL_PROMPTS}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-primary text-base font-bold text-primary transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <IconPlus className="h-5 w-5" stroke={2.2} />
+            Add another prompt
+          </button>
+        </>
+      ) : null}
+
+      {step === 10 ? (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {Array.from({ length: MAX_PROFILE_PHOTOS }, (_, index) => {
+              const src = index === 0 ? profile.localPhotoUrl ?? profile.photoUrl : extraPhotoUrls[index - 1];
+              return (
+                <ImageUploadSlot
+                  key={index}
+                  src={src}
+                  label={`Profile photo ${index + 1}`}
+                  action={src ? "edit" : "add"}
+                  className="aspect-[0.86]"
+                  onPreview={(url) => setPhotoAt(index, url)}
+                />
+              );
+            })}
+          </div>
+
+          <Callout>
+            <ul className="space-y-1 font-semibold text-primary">
+              <li>Use recent photos</li>
+              <li>No group photo first</li>
+              <li>No sunglasses in your first photo</li>
+              <li>No screenshots or heavily edited photos</li>
+            </ul>
+          </Callout>
+
+          <button
+            type="button"
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-primary text-base font-bold text-primary transition hover:bg-secondary"
+          >
+            <IconCircleCheckFilled className="h-6 w-6" />
+            Verify Photos
+          </button>
+        </>
+      ) : null}
+
+      {step === 11 ? <PreferencesStep /> : null}
+    </StepShell>
+  );
+}
+
+// ---- Partner preferences with deal-breaker toggles -------------------
+
+function PreferenceSection({
+  title,
+  section,
+  children
+}: {
+  title: string;
+  section: PreferenceSectionKey;
+  children: React.ReactNode;
+}) {
+  const state = useDemoState();
+  const isDealBreaker = state.preferences.dealBreakers[section];
+  return (
+    <section className={`rounded-[18px] border p-4 transition ${isDealBreaker ? "border-primary/50 bg-card" : "border-border bg-card"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[15px] font-bold">{title}</p>
+        <div className="flex items-center gap-2">
+          <span className={`text-[11px] font-bold uppercase tracking-wide ${isDealBreaker ? "text-primary" : "text-muted-foreground"}`}>
+            Deal-breaker
+          </span>
+          <ToggleSwitch checked={isDealBreaker} onChange={() => toggleDealBreaker(section)} label={`${title} deal-breaker`} />
+        </div>
+      </div>
+      <div className="mt-3">{children}</div>
+      {isDealBreaker ? (
+        <p className="mt-3 text-xs font-semibold text-primary">We will never introduce someone who doesn't meet this.</p>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">A preference, not a filter — we will weigh it, not enforce it.</p>
+      )}
+    </section>
+  );
+}
+
+function PreferencesStep() {
+  const state = useDemoState();
+  const prefs = state.preferences;
+
+  return (
+    <>
+      <PreferenceSection title="Age range" section="age">
+        <RangeSelector
+          min={MIN_PREFERENCE_AGE}
+          max={MAX_PREFERENCE_AGE}
+          value={{ min: prefs.ageMin, max: prefs.ageMax }}
+          onChange={(value) => updatePreferences({ ageMin: value.min, ageMax: value.max })}
+        />
+      </PreferenceSection>
+
+      <PreferenceSection title="Where they live" section="city">
+        <ChipSelect options={PREF_CITY} value={prefs.cityPref} onChange={(value) => updatePreferences({ cityPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Cultural or religious preference" section="religion">
+        <ChipSelect options={PREF_RELIGION} value={prefs.religionPref} onChange={(value) => updatePreferences({ religionPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Marriage timeline" section="timeline">
+        <ChipSelect options={PREF_TIMELINE} value={prefs.timelinePref} onChange={(value) => updatePreferences({ timelinePref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Views on children" section="children">
+        <ChipSelect options={PREF_CHILDREN} value={prefs.childrenPref} onChange={(value) => updatePreferences({ childrenPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Future location plans" section="relocation">
+        <ChipSelect options={PREF_RELOCATION} value={prefs.relocationPref} onChange={(value) => updatePreferences({ relocationPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Financial outlook" section="finance">
+        <ChipSelect options={PREF_FINANCE} value={prefs.financePref} onChange={(value) => updatePreferences({ financePref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Smoking" section="smoking">
+        <ChipSelect options={PREF_SMOKING} value={prefs.smokingPref} onChange={(value) => updatePreferences({ smokingPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Drinking" section="drinking">
+        <ChipSelect options={PREF_DRINKING} value={prefs.drinkingPref} onChange={(value) => updatePreferences({ drinkingPref: value })} />
+      </PreferenceSection>
+
+      <PreferenceSection title="Food" section="food">
+        <ChipSelect options={PREF_FOOD} value={prefs.foodPref} onChange={(value) => updatePreferences({ foodPref: value })} />
+      </PreferenceSection>
+    </>
+  );
+}
