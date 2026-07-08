@@ -14,7 +14,6 @@ import {
   IconPhone,
   IconPhoto,
   IconRosetteDiscountCheckFilled,
-  IconScan,
   IconSparkles,
   IconUserCheck
 } from "@tabler/icons-react";

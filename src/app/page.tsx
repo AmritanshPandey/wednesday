@@ -52,7 +52,7 @@ export default function WelcomePage() {
         introduction, every Wednesday — no endless swiping.
       </p>
 
-      <div className="my-8">
+      <div>
         <PostcardsIllustration />
       </div>
 
