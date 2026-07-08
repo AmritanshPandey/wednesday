@@ -13,7 +13,7 @@ export function Chip({ selected, className, type, ...props }: ChipProps) {
       type={type ?? "button"}
       aria-pressed={selected}
       className={cn(
-        "inline-flex items-center justify-center rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "inline-flex items-center justify-center rounded-full border px-4 py-2.5 text-sm font-semibold transition-[background-color,transform,border-color,box-shadow] duration-200 ease-editorial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]",
         selected
           ? "border-primary bg-primary text-primary-foreground shadow-sm"
           : "border-gold bg-card text-foreground hover:bg-secondary",

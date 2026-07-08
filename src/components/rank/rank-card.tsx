@@ -30,9 +30,19 @@ export function RankCard({
         isDragging && "z-10 border-primary shadow-soft"
       )}
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-serif text-sm font-bold text-primary-foreground">
-        {index + 1}
-      </span>
+      <button
+        type="button"
+        aria-label={`Drag to reorder ${profile.name}`}
+        className="flex h-10 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-secondary active:cursor-grabbing self-center"
+        {...attributes}
+        {...listeners}
+      >
+        <IconGripVertical className="h-5 w-5" stroke={1.8} />
+      </button>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-sans font-bold leading-none text-primary-foreground">
+        <span className="leading-none">{index + 1}</span>
+      </div>
+
       <ProfilePhoto
         name={profile.name}
         src={profile.photoUrl}
@@ -43,27 +53,19 @@ export function RankCard({
           <span className="font-serif text-lg font-semibold text-primary">{profile.name}, {profile.age}</span>
         </p>
         <p className="truncate text-xs font-semibold text-muted-foreground">
-          {profile.role} · {profile.city}
+          {profile.role}
         </p>
-        <p className="mt-0.5 truncate font-hand text-base leading-tight text-foreground/70">“{profile.story}”</p>
+        <p className="truncate text-xs font-semibold text-foreground/70">{profile.city}</p>
       </button>
       <button
         type="button"
         onClick={onView}
         aria-label={`View ${profile.name}'s full profile`}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary self-center"
       >
         <IconChevronRight className="h-4 w-4" stroke={2.2} />
       </button>
-      <button
-        type="button"
-        aria-label={`Drag to reorder ${profile.name}`}
-        className="flex h-10 w-7 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-secondary active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <IconGripVertical className="h-5 w-5" stroke={1.8} />
-      </button>
+
     </li>
   );
 }

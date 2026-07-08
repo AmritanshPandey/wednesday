@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Nothing+You+Could+Do&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Edu+TAS+Beginner:wght@400..700&display=swap");
 @import "tailwindcss";
 
 @theme inline {
@@ -24,8 +24,12 @@
   --font-sans: var(--font-sans), ui-sans-serif, system-ui;
   --font-serif: var(--font-serif), Georgia, ui-serif, serif;
   --font-hand: var(--font-hand), cursive;
-  --shadow-soft: 0 16px 50px rgba(0, 79, 59, 0.08);
-  --shadow-postcard: 0 10px 30px rgba(0, 79, 59, 0.1), 0 2px 6px rgba(0, 79, 59, 0.06);
+  /* Paper shadows: soft, warm, never harsh. */
+  --shadow-soft: 0 18px 44px rgba(0, 79, 59, 0.07), 0 4px 12px rgba(0, 79, 59, 0.04);
+  --shadow-postcard: 0 8px 22px rgba(0, 79, 59, 0.08), 0 1.5px 4px rgba(0, 79, 59, 0.05);
+  --shadow-lifted: 0 16px 34px rgba(0, 79, 59, 0.12), 0 3px 8px rgba(0, 79, 59, 0.07);
+  /* Editorial easing — settles like paper coming to rest. */
+  --ease-editorial: cubic-bezier(0.32, 0.72, 0.24, 1);
 }
 
 :root {
@@ -50,7 +54,15 @@
   --elevated: #dedad4;
   --font-sans: "Nunito";
   --font-serif: "Playfair Display";
-  --font-hand: "Nothing You Could Do";
+  --font-hand: "Edu TAS Beginner";
+  /* Tileable fibre grain baked as SVG — used by card surfaces (the global
+     canvas texture is the WebGL layer; cards stay on cheap CSS). */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* Utility class for handwritten text */
+.handwritten {
+  font-family: var(--font-hand), cursive;
 }
 
 @layer base {
@@ -81,11 +93,61 @@
   textarea {
     font: inherit;
   }
+
+  /* Calm baseline for users who prefer low stimulation. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
+/* Card-level paper: faint tonal washes + tiled fibre grain. */
 .paper-texture {
-  background-image: radial-gradient(rgba(0, 79, 59, 0.035) 0.7px, transparent 0.7px);
-  background-size: 14px 14px;
+  background-color: var(--card);
+  /* Ensure the grain overlays the card color even on mobile where stacking
+     contexts or semi-transparent parents can hide purely-image backgrounds. */
+  background-image:
+    radial-gradient(at 16% 8%, rgba(254, 243, 198, 0.45) 0%, transparent 52%),
+    radial-gradient(at 88% 94%, rgba(222, 218, 212, 0.3) 0%, transparent 58%),
+    var(--paper-grain);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size:
+    100% 100%,
+    100% 100%,
+    180px 180px;
+  /* Mobile-friendly background handling */
+  background-attachment: scroll;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+
+/* Slightly warmer variant for postcard surfaces (#FEF3C6 base). */
+.paper-postcard {
+  background-color: var(--secondary);
+  background-image:
+    radial-gradient(at 82% 10%, rgba(255, 253, 246, 0.55) 0%, transparent 55%),
+    var(--paper-grain);
+  background-repeat: no-repeat, repeat;
+  background-size:
+    100% 100%,
+    180px 180px;
+  background-attachment: scroll;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+}
+
+/* Letterpress: type gently pressed into paper. Headings on paper only. */
+.letterpress {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.ink-hairline {
+  border-color: rgba(0, 79, 59, 0.14);
 }
 
 .postmark-lines {
@@ -96,6 +158,35 @@
     transparent 1.5px,
     transparent 6px
   );
+}
+
+/* Ruled writing lines for letter paper. */
+.letter-ruled {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    rgba(0, 79, 59, 0.12) 31px,
+    rgba(0, 79, 59, 0.12) 32px
+  );
+}
+
+/* CSS fallback for the global paper canvas (WebGL unavailable / reduced motion). */
+.paper-canvas-fallback {
+  background-color: #fef9ee;
+  background-image:
+    radial-gradient(at 12% 6%, rgba(254, 243, 198, 0.5) 0%, transparent 46%),
+    radial-gradient(at 92% 30%, rgba(222, 218, 212, 0.32) 0%, transparent 50%),
+    radial-gradient(at 30% 88%, rgba(254, 243, 198, 0.34) 0%, transparent 52%),
+    var(--paper-grain);
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    180px 180px;
+  background-attachment: scroll;
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
 }
 
 @layer components {

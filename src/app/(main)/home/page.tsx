@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { IconArrowRight, IconLock, IconMailHeart, IconHourglassLow } from "@tabler/icons-react";
+import { IconArrowRight, IconMailHeart, IconHourglassLow } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
+import { Envelope } from "@/components/wednesday/envelope";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
 import { getCandidate, rankingComplete } from "@/lib/demo/demo-actions";
 import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
@@ -29,7 +30,7 @@ export default function HomePage() {
   const matchProfile = getCandidate(match?.profileId);
 
   return (
-    <div className="space-y-6 px-6 pb-8">
+    <div className="space-y-5 px-6 pb-8 sm:space-y-6">
       <p className="text-sm font-semibold text-muted-foreground">
         {day.label}, {day.date}
       </p>
@@ -50,11 +51,7 @@ export default function HomePage() {
           action={{ href: "/rank", label: "Finish ranking" }}
         />
       ) : ranked ? (
-        <HeroCard
-          icon={<IconLock className="h-6 w-6 text-accent" stroke={1.8} />}
-          title="Your ranking is sealed"
-          body={`Everyone's preferences meet in one allocation on Wednesday ${WEEK_DAYS[REVEAL_DAY].date}. Like a postcard already in the mail.`}
-        />
+        <WaitingCard revealDate={WEEK_DAYS[REVEAL_DAY].date} daysAway={Math.max(0, REVEAL_DAY - state.dayIndex)} />
       ) : (
         <HeroCard
           icon={<IconMailHeart className="h-6 w-6 text-accent" stroke={1.8} />}
@@ -84,9 +81,9 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <section className="rounded-[18px] border border-border bg-card p-5">
+      <section className="rounded-[18px] border border-border bg-card p-4">
         <h2 className="font-bold">How this week works</h2>
-        <ol className="mt-4 space-y-4">
+        <ol className="mt-3 space-y-3">
           <TimelineRow
             done={ranked}
             current={!ranked && state.dayIndex < REVEAL_DAY}
@@ -130,18 +127,39 @@ function HeroCard({
   action?: { href: string; label: string };
 }) {
   return (
-    <section className="paper-texture rounded-[20px] border border-border bg-card p-5 shadow-postcard">
+    <section className="paper-texture rounded-[20px] border border-border bg-card p-4 shadow-postcard">
       <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary">{icon}</div>
-      <h1 className="mt-4 font-serif text-2xl font-semibold leading-snug">{title}</h1>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
+      <h1 className="letterpress mt-3 font-serif text-2xl font-semibold leading-snug">{title}</h1>
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">{body}</p>
       {action ? (
         <Link
           href={action.href}
-          className="mt-5 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground transition hover:bg-primary/92"
+          className="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground transition-transform duration-200 active:scale-[0.98]"
         >
           {action.label}
         </Link>
       ) : null}
+    </section>
+  );
+}
+
+/** The calm sealed-envelope waiting state between ranking and Wednesday. */
+function WaitingCard({ revealDate, daysAway }: { revealDate: string; daysAway: number }) {
+  return (
+    <section className="paper-texture rounded-[20px] border border-border bg-card px-4 pb-5 pt-6 text-center shadow-postcard">
+      <div className="scale-[0.85]">
+        <Envelope sealed addressee="you" />
+      </div>
+      <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-accent">
+        {daysAway === 0 ? "Arriving today" : daysAway === 1 ? "One day away" : `${daysAway} days away`}
+      </p>
+      <h1 className="letterpress mt-2 font-serif text-2xl font-semibold leading-snug">
+        Your next thoughtful introduction arrives Wednesday
+      </h1>
+      <p className="mx-auto mt-2 max-w-[34ch] text-sm leading-6 text-muted-foreground">
+        Your ranking is sealed. Everyone&apos;s preferences meet in one allocation on Wednesday {revealDate} — like a
+        letter already in the mail.
+      </p>
     </section>
   );
 }
@@ -190,7 +208,7 @@ function MatchCard({
       <div className="flex items-center gap-4">
         <ProfilePhoto name={name} src={photo} className="h-20 w-16 shrink-0 rounded-[10px] border-4 border-card shadow-sm" />
         <div className="min-w-0">
-          <h1 className="font-serif text-2xl font-semibold leading-snug">{item.title}</h1>
+          <h1 className="letterpress font-serif text-2xl font-semibold leading-snug">{item.title}</h1>
         </div>
       </div>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.body}</p>

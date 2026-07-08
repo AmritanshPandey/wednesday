@@ -75,7 +75,7 @@ function ProfileSummaryCard({ profile }: { profile: Profile }) {
         <ProfilePhoto
           name={profile.name}
           src={profile.localPhotoUrl ?? profile.photoUrl}
-          className="aspect-[0.82] min-h-48 rounded-[12px] border-4 border-card bg-secondary shadow-sm"
+          className="aspect-[0.82] min-h-48 w-full rounded-[12px] border-4 border-card bg-secondary shadow-sm"
         />
 
         <div className="min-w-0">
@@ -111,16 +111,7 @@ function ProfileSummaryCard({ profile }: { profile: Profile }) {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm font-bold">
-        <div className="flex items-center gap-2 text-primary">
-          <IconRosetteDiscountCheckFilled className="h-5 w-5 shrink-0" />
-          <span>Phone verified</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <IconScan className="h-5 w-5 shrink-0" stroke={2} />
-          <span>Photo verification needed</span>
-        </div>
-      </div>
+     
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <Link

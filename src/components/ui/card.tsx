@@ -2,7 +2,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-[24px] border border-border bg-card text-card-foreground shadow-none", className)} {...props} />;
+  // Apply a subtle paper texture to card surfaces by default.
+  return <div className={cn("paper-texture rounded-[24px] border border-border bg-card text-card-foreground shadow-none", className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

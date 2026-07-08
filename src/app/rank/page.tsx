@@ -18,8 +18,8 @@ import { IconChevronLeft, IconLock } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { RankCard } from "@/components/rank/rank-card";
+import { Envelope } from "@/components/wednesday/envelope";
 import { ProfileDetail } from "@/components/wednesday/profile-detail";
-import { Postmark } from "@/components/wednesday/stamp";
 import { currentRound, getCandidate, rankingComplete, setRoundOrder, submitRound } from "@/lib/demo/demo-actions";
 import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
 import { REVEAL_DAY, WEEK_DAYS } from "@/types/clock";
@@ -50,12 +50,12 @@ export default function RankPage() {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="paper-texture mt-10 rounded-[20px] border border-border bg-card p-8 text-center shadow-postcard"
+          className="paper-texture mt-8 rounded-[20px] border border-border bg-card px-6 pb-8 pt-10 text-center shadow-postcard"
         >
-          <div className="flex justify-center">
-            <Postmark className="h-20 w-20" />
+          <div className="scale-90">
+            <Envelope sealed addressee="you" />
           </div>
-          <h1 className="mt-4 font-serif text-3xl font-semibold">Your ranking is sealed</h1>
+          <h1 className="letterpress mt-3 font-serif text-3xl font-semibold">Your ranking is sealed</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Nothing left to do but wait for Wednesday {WEEK_DAYS[REVEAL_DAY].date}. Your preferences meet everyone
             else's in a single allocation — stable, mutual, and never below 50% compatibility.

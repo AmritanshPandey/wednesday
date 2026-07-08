@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DemoPanel } from "@/components/demo/demo-panel";
+import { PaperTextureLayer } from "@/components/wednesday/paper-texture-layer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +18,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Edu+TAS+Beginner:wght@400..700&display=swap" rel="stylesheet" />
+      </head>
       <body className="font-sans antialiased">
+        <PaperTextureLayer />
         {children}
         <DemoPanel />
       </body>

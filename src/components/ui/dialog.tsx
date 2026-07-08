@@ -12,9 +12,10 @@ type DialogProps = {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  sheet?: boolean;
 };
 
-export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
+export function Dialog({ open, onOpenChange, title, description, children, className, sheet }: DialogProps) {
   React.useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -24,16 +25,37 @@ export function Dialog({ open, onOpenChange, title, description, children, class
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onOpenChange, open]);
 
+  // Prevent background page scrolling when dialog is open
+  React.useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/25 px-4 pb-4 pt-16 backdrop-blur-sm sm:items-center sm:pb-16" role="presentation">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex justify-center bg-foreground/25 backdrop-blur-sm",
+        sheet ? "items-end" : "items-end pt-4 sm:items-center"
+      )}
+      role="presentation"
+    >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby={description ? "dialog-description" : undefined}
-        className={cn("w-full max-w-md rounded-[24px] border border-border bg-card p-5 shadow-soft", className)}
+        className={cn(
+          sheet
+            ? "w-full rounded-t-[20px] border border-border bg-card p-4 pb-8 shadow-soft paper-postcard"
+            : "w-full max-w-md rounded-t-[24px] border border-border bg-card p-5 shadow-soft paper-texture",
+          className
+        )}
       >
         <div className="flex items-start justify-between gap-4">
           <div>

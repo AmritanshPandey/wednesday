@@ -1,7 +1,6 @@
 import type { Profile } from "@/types/profile";
 import { Badge } from "@/components/ui/badge";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
-import { CancellationLines, Stamp } from "@/components/wednesday/stamp";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -22,18 +21,24 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** The full postcard-style profile, used in the rank dialog and match reveal. */
-export function ProfileDetail({ profile }: { profile: Profile }) {
+export function ProfileDetail({
+  profile,
+  action,
+}: {
+  profile: Profile;
+  action?: React.ReactNode;
+}) {
   return (
     <article className="space-y-4">
-      <div className="paper-texture relative overflow-hidden rounded-[18px] border border-border bg-card p-4 shadow-postcard">
+      <div className="paper-texture relative overflow-hidden">
         <div className="absolute right-3 top-3 flex items-start gap-2">
-          <CancellationLines className="mt-2" />
-          <Stamp value="30" />
+
+        
         </div>
         <ProfilePhoto
           name={profile.name}
           src={profile.localPhotoUrl ?? profile.photoUrl}
-          className="h-64 w-full rounded-[12px] border-4 border-card shadow-sm"
+          className="h-72 w-full rounded-[12px] border-4 border-card shadow-sm"
         />
         <div className="mt-4 flex items-baseline gap-2">
           <h2 className="font-serif text-3xl text-primary">{profile.name},</h2>
@@ -43,6 +48,10 @@ export function ProfileDetail({ profile }: { profile: Profile }) {
           {profile.role} · {profile.city}
         </p>
         <p className="mt-3 font-hand text-2xl leading-snug text-foreground/80">“{profile.story}”</p>
+        <div className="mt-3 text-sm text-muted-foreground">
+          <p>Languages: <span className="font-semibold text-foreground">{profile.languages.join(", ")}</span></p>
+          <p className="mt-1">Currently working on: <span className="font-semibold text-foreground">{profile.workingOn}</span></p>
+        </div>
       </div>
 
       <Section title="Looking for">
@@ -75,6 +84,12 @@ export function ProfileDetail({ profile }: { profile: Profile }) {
         <p className="pt-1 italic text-muted-foreground">“{profile.goodRelationship}”</p>
       </Section>
 
+      <Section title="Personal priorities">
+        <p className="text-sm leading-6">{profile.priorities?.map((p, i) => (
+          <span key={i} className="block">• {p}</span>
+        ))}</p>
+      </Section>
+
       <Section title="Things they enjoy">
         <div className="flex flex-wrap gap-1.5 pt-1">
           {profile.interests.map((interest) => (
@@ -91,8 +106,16 @@ export function ProfileDetail({ profile }: { profile: Profile }) {
 
       {profile.moments.length > 0 ? (
         <Section title="A moment from their world">
-          <p className="font-hand text-xl text-foreground/80">“{profile.moments[0].caption}”</p>
+          {profile.moments.map((m, i) => (
+            <p key={i} className="font-hand text-xl text-foreground/80">“{m.caption}”</p>
+          ))}
         </Section>
+      ) : null}
+
+      {action ? (
+        <div className="pt-4">
+          <div className="rounded-[14px] border-t border-border pt-4">{action}</div>
+        </div>
       ) : null}
     </article>
   );

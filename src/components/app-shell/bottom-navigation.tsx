@@ -33,7 +33,7 @@ export function BottomNavigation() {
       className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2"
       aria-label="Primary navigation"
     >
-      <div className="grid grid-cols-3 gap-1 rounded-full border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
+      <div className="grid grid-cols-3 gap-1 rounded-full border border-border bg-card/95 p-2 shadow-sm backdrop-blur paper-texture">
         {navItems.map((item) => {
           const active = item.activeOn.some((prefix) => pathname.startsWith(prefix));
           const Icon = active ? item.activeIcon : item.icon;

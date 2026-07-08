@@ -24,7 +24,8 @@ export function ProfilePhoto({
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center overflow-hidden bg-secondary text-secondary-foreground",
+        // Postcard-like photo surface: warm backing and subtle grain.
+        "relative flex items-center justify-center overflow-hidden paper-postcard text-secondary-foreground",
         className
       )}
     >
