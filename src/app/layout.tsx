@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DemoPanel } from "@/components/demo/demo-panel";
 import { PaperTextureLayer } from "@/components/wednesday/paper-texture-layer";
+import { AppBootstrap } from "@/lib/app/app-bootstrap";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link href="https://fonts.googleapis.com/css2?family=Edu+TAS+Beginner:wght@400..700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-sans antialiased">
+        <AppBootstrap />
         <PaperTextureLayer />
         {children}
         <DemoPanel />

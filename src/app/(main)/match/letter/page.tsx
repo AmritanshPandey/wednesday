@@ -7,8 +7,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Envelope, WaxSeal } from "@/components/wednesday/envelope";
 import { Stamp } from "@/components/wednesday/stamp";
-import { getCandidate, sendLetter } from "@/lib/demo/demo-actions";
-import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
+import { getCandidate, sendLetter } from "@/lib/app/actions";
+import { useDemoState, useStoreHydrated } from "@/lib/app/store";
 import { DEADLINE_DAY, WEEK_DAYS } from "@/types/clock";
 
 const MAX_LETTER_LENGTH = 900;

@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { IconPencil } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { IconLogout, IconPencil } from "@tabler/icons-react";
 import { ProfileDetail } from "@/components/wednesday/profile-detail";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { signOutUser, useDemoState } from "@/lib/app/store";
 import { PREFERENCE_SECTIONS } from "@/types/preferences";
 
 export default function ProfilePage() {
   const state = useDemoState();
+  const router = useRouter();
   const dealBreakerCount = PREFERENCE_SECTIONS.filter((section) => state.preferences.dealBreakers[section]).length;
+
+  async function handleSignOut() {
+    await signOutUser();
+    router.push("/");
+  }
 
   return (
     <div className="px-6 pb-10">
@@ -28,6 +35,15 @@ export default function ProfilePage() {
       <div className="mt-5">
         <ProfileDetail profile={state.profile} />
       </div>
+
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-border text-sm font-bold text-muted-foreground transition hover:bg-secondary"
+      >
+        <IconLogout className="h-4 w-4" stroke={2} />
+        Sign out
+      </button>
     </div>
   );
 }

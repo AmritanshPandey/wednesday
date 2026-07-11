@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { useDemoState } from "@/lib/app/store";
 
 export function AppHeader() {
   const state = useDemoState();

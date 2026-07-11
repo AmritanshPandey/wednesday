@@ -17,8 +17,8 @@ import { Envelope } from "@/components/wednesday/envelope";
 import { ProfileDetail } from "@/components/wednesday/profile-detail";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
 import { CancellationLines, Postmark, Stamp } from "@/components/wednesday/stamp";
-import { getCandidate, rankingComplete } from "@/lib/demo/demo-actions";
-import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
+import { getCandidate, rankingComplete } from "@/lib/app/actions";
+import { useDemoState, useStoreHydrated } from "@/lib/app/store";
 import { DEADLINE_DAY, REVEAL_DAY, WEEK_DAYS } from "@/types/clock";
 
 export default function MatchPage() {

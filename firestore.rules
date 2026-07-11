@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Wednesday security model:
+// • A user reads/writes only their own user doc, ranking, pool, and match.
+// • Pools and matches are written by the server (Admin SDK, which bypasses
+//   these rules) — clients may only read their own.
+// • Letters are written only through the /api/letters route (Admin SDK).
+//   Participants may read their thread's letters.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
+    match /weeks/{weekId} {
+      allow read: if signedIn();
+      allow write: if false; // server only
+
+      match /pools/{uid} {
+        allow read: if isSelf(uid);
+        allow write: if false; // server only
+      }
+      match /matches/{uid} {
+        allow read: if isSelf(uid);
+        allow write: if false; // server only
+      }
+      match /rankings/{uid} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    match /threads/{threadId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.participants;
+      allow write: if false; // server only
+
+      match /letters/{letterId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
+        allow write: if false; // server only (via /api/letters)
+      }
+    }
+  }
+}

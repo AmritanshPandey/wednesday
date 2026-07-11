@@ -4,8 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PipelineDiagram } from "@/components/wednesday/pipeline-diagram";
-import { getCandidate } from "@/lib/demo/demo-actions";
-import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
+import { getCandidate } from "@/lib/app/actions";
+import { useDemoState, useStoreHydrated } from "@/lib/app/store";
 
 export default function HowThisMatchPage() {
   const state = useDemoState();

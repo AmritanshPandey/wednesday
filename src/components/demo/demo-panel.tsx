@@ -2,95 +2,98 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { IconCalendarClock, IconPlayerTrackNext, IconRefresh } from "@tabler/icons-react";
+import { IconCalendarClock, IconPlayerTrackNext, IconRefresh, IconSparkles } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { advanceDay, jumpToWednesday, rankingComplete, resetDemo } from "@/lib/demo/demo-actions";
-import { useDemoState } from "@/lib/demo/demo-store";
-import { DEADLINE_DAY, REVEAL_DAY, WEEK_DAYS } from "@/types/clock";
+import { advanceDay, jumpToWednesday, resetDemo, runAllocationNow } from "@/lib/app/actions";
+import { useAppState } from "@/lib/app/store";
+import { labelForClock } from "@/lib/week";
 
-function phaseLabel(dayIndex: number, ranked: boolean, hasMatch: boolean): string {
-  if (dayIndex < REVEAL_DAY) return ranked ? "Ranking sealed — waiting for Wednesday" : "Ranking window open";
-  if (dayIndex === REVEAL_DAY) return hasMatch ? "Introduction revealed" : "Wednesday — finish ranking to be included";
-  if (dayIndex === DEADLINE_DAY) return "Deadline day — letters must be posted today";
-  return "The week is winding down";
-}
+const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === "true";
+
+const PHASE_LABEL: Record<string, string> = {
+  ranking: "Ranking window is open",
+  sealed: "Ranking sealed — waiting for Wednesday",
+  reveal: "Wednesday — introductions revealed",
+  deadline: "Thursday — letters due today",
+  winddown: "The week is winding down"
+};
 
 /**
- * The simulated-week control. This is demo scaffolding, not product UI —
- * it lets you play the whole Wednesday cycle in a minute.
+ * Dev-only time machine. Lets a single machine play the whole Wednesday cycle
+ * without waiting for real time, and trigger the allocation on demand. Hidden
+ * in production (NEXT_PUBLIC_ENABLE_DEV_TOOLS=false).
  */
 export function DemoPanel() {
-  const state = useDemoState();
+  const state = useAppState();
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const [running, setRunning] = React.useState(false);
 
-  if (!state.joinedWeek || pathname === "/match") return null;
+  if (!DEV || !state.signedIn || pathname === "/match") return null;
 
-  const day = WEEK_DAYS[state.dayIndex];
-  const ranked = rankingComplete(state);
+  const label = labelForClock(state.clock);
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open demo time controls"
+        aria-label="Open dev time controls"
         className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full border border-accent bg-card px-3.5 py-2.5 text-xs font-bold text-accent shadow-postcard transition hover:bg-secondary sm:right-[calc(50%-215px+1rem)]"
       >
         <IconCalendarClock className="h-4 w-4" stroke={2.2} />
-        {day.short} {day.date}
+        {label.short} {label.date}
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen} title="Simulated week" description="Demo controls — play the Wednesday cycle at your own pace.">
+      <Dialog open={open} onOpenChange={setOpen} title="Dev time machine" description="Play the Wednesday cycle without waiting for real time.">
         <div className="space-y-5">
           <div className="rounded-[14px] bg-secondary px-4 py-3">
             <p className="text-sm font-bold">
-              Today is {day.label}, {day.date}
+              {label.label}, {label.date}
             </p>
-            <p className="mt-0.5 text-xs text-secondary-foreground/80">{phaseLabel(state.dayIndex, ranked, Boolean(state.match))}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5" aria-hidden>
-            {WEEK_DAYS.map((weekDay, index) => (
-              <span
-                key={`${weekDay.short}-${weekDay.date}`}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                  index === state.dayIndex
-                    ? "bg-primary text-primary-foreground"
-                    : index < state.dayIndex
-                      ? "bg-muted text-muted-foreground line-through"
-                      : "bg-card text-muted-foreground border border-border"
-                }`}
-              >
-                {weekDay.short} {index === REVEAL_DAY ? "★" : ""}
-              </span>
-            ))}
+            <p className="mt-0.5 text-xs text-secondary-foreground/80">{PHASE_LABEL[state.clock.phase]}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button onClick={() => advanceDay()} disabled={state.dayIndex >= WEEK_DAYS.length - 1}>
+            <Button onClick={() => advanceDay()}>
               <IconPlayerTrackNext className="h-4 w-4" stroke={2.2} />
               Advance a day
             </Button>
-            <Button variant="outline" onClick={() => jumpToWednesday()} disabled={state.dayIndex >= REVEAL_DAY}>
+            <Button variant="outline" onClick={() => jumpToWednesday()} disabled={state.clock.phase === "reveal" || state.clock.phase === "deadline"}>
               Jump to Wednesday
             </Button>
           </div>
 
+          <Button
+            className="w-full"
+            disabled={running}
+            onClick={async () => {
+              setRunning(true);
+              try {
+                await runAllocationNow();
+              } finally {
+                setRunning(false);
+              }
+            }}
+          >
+            <IconSparkles className="h-4 w-4" stroke={2.2} />
+            {running ? "Running allocation…" : "Run allocation now"}
+          </Button>
+
           <div className="border-t border-dashed border-border pt-4">
             <Button
               variant="outline"
-              className="w-full text-destructive"
+              className="w-full"
               onClick={() => {
                 resetDemo();
                 setOpen(false);
-                router.push("/");
+                router.push("/home");
               }}
             >
               <IconRefresh className="h-4 w-4" stroke={2.2} />
-              Reset the whole demo
+              Reset time to now
             </Button>
           </div>
         </div>

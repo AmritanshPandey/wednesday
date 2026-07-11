@@ -20,8 +20,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { RankCard } from "@/components/rank/rank-card";
 import { Envelope } from "@/components/wednesday/envelope";
 import { ProfileDetail } from "@/components/wednesday/profile-detail";
-import { currentRound, getCandidate, rankingComplete, setRoundOrder, submitRound } from "@/lib/demo/demo-actions";
-import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
+import { currentRound, getCandidate, rankingComplete, setRoundOrder, submitRound } from "@/lib/app/actions";
+import { useDemoState, useStoreHydrated } from "@/lib/app/store";
 import { REVEAL_DAY, WEEK_DAYS } from "@/types/clock";
 
 export default function RankPage() {

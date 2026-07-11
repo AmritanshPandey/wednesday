@@ -1,8 +1,11 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { IconBrandGoogleFilled } from "@tabler/icons-react";
 import { Callout } from "@/components/setup/step-shell";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { signInWithGoogle, useAppState } from "@/lib/app/store";
 
 function PostcardsIllustration() {
   return (
@@ -40,8 +43,20 @@ function PostcardsIllustration() {
 }
 
 export default function WelcomePage() {
-  const state = useDemoState();
+  const state = useAppState();
+  const router = useRouter();
+  const [signingIn, setSigningIn] = React.useState(false);
   const started = state.setupStepReached > 1 && !state.setupComplete;
+
+  async function handleSignIn() {
+    setSigningIn(true);
+    try {
+      await signInWithGoogle();
+      router.push("/setup/1");
+    } catch {
+      setSigningIn(false);
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-[430px] flex-col px-6 pb-10 pt-14">
@@ -63,19 +78,38 @@ export default function WelcomePage() {
       </Callout>
 
       <div className="mt-auto space-y-3 pt-8">
-        {state.setupComplete ? (
+        {!state.configured ? (
+          <div className="rounded-[16px] border border-gold bg-secondary px-4 py-4 text-sm leading-6 text-secondary-foreground">
+            <p className="font-bold">Almost there — Firebase isn&apos;t configured yet.</p>
+            <p className="mt-1">
+              Add your keys to <code className="font-mono text-xs">.env.local</code> (see SETUP.md), then reload.
+            </p>
+          </div>
+        ) : !state.authReady ? (
+          <div className="h-13 min-h-12 w-full animate-pulse rounded-full bg-muted" />
+        ) : !state.signedIn ? (
+          <button
+            type="button"
+            onClick={handleSignIn}
+            disabled={signingIn}
+            className="flex h-13 min-h-12 w-full items-center justify-center gap-2.5 rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform duration-200 active:scale-[0.98] disabled:opacity-70"
+          >
+            <IconBrandGoogleFilled className="h-5 w-5" />
+            {signingIn ? "Signing in…" : "Continue with Google"}
+          </button>
+        ) : state.setupComplete ? (
           <Link
             href="/home"
-            className="flex h-13 min-h-12 w-full items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition hover:bg-primary/92"
+            className="flex h-13 min-h-12 w-full items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform duration-200 active:scale-[0.98]"
           >
             Continue to your week
           </Link>
         ) : (
           <Link
             href={started ? `/setup/${Math.min(state.setupStepReached, 11)}` : "/setup/1"}
-            className="flex h-13 min-h-12 w-full items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition hover:bg-primary/92"
+            className="flex h-13 min-h-12 w-full items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground shadow-sm transition-transform duration-200 active:scale-[0.98]"
           >
-            {started ? "Continue my profile" : "Start my Profile"}
+            {started ? "Continue my profile" : "Start my profile"}
           </Link>
         )}
         <Link

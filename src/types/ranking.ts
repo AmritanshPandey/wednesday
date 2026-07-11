@@ -12,6 +12,8 @@ export type PoolEntry = {
   profileId: string;
   compatibility: number;
   breakdown: CategoryScore[];
+  /** Denormalized postcard of the candidate (live mode: candidates are real users). */
+  profile?: import("@/types/profile").Profile;
 };
 
 export type CategoryScore = {

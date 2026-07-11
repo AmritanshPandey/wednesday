@@ -16,8 +16,8 @@ import { RangeSelector } from "@/components/ui/range-selector";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Callout, FieldBlock, StepShell, SETUP_STEP_COUNT } from "@/components/setup/step-shell";
-import { reachSetupStep, toggleDealBreaker, updatePreferences, updateProfile } from "@/lib/demo/demo-actions";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { reachSetupStep, toggleDealBreaker, updatePreferences, updateProfile, uploadProfilePhoto } from "@/lib/app/actions";
+import { useDemoState } from "@/lib/app/store";
 import type { Profile } from "@/types/profile";
 import type { PreferenceSectionKey } from "@/types/preferences";
 import {
@@ -137,17 +137,20 @@ function ImageUploadSlot({
   label,
   onPreview,
   className,
-  action = "add"
+  action = "add",
+  slot = "main"
 }: {
   src?: string;
   label: string;
   onPreview: (url: string) => void;
   className?: string;
   action?: "add" | "edit";
+  slot?: string;
 }) {
   const [error, setError] = React.useState<string | null>(null);
+  const [uploading, setUploading] = React.useState(false);
 
-  function onChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function onChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -159,8 +162,13 @@ function ImageUploadSlot({
       return;
     }
 
+    // Show it instantly, then swap in the durable R2 URL once uploaded.
     onPreview(URL.createObjectURL(file));
     setError(null);
+    setUploading(true);
+    const url = await uploadProfilePhoto(file, slot);
+    setUploading(false);
+    if (url) onPreview(url);
   }
 
   return (
@@ -176,6 +184,11 @@ function ImageUploadSlot({
           ) : (
             <IconPhoto className="h-9 w-9" stroke={1.8} />
           )}
+          {uploading ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-foreground/30 text-xs font-bold text-card">
+              Uploading…
+            </span>
+          ) : null}
           <span className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-postcard">
             {action === "edit" ? <IconPencil className="h-5 w-5" stroke={2.2} /> : <IconPlus className="h-7 w-7" stroke={2.2} />}
           </span>
@@ -518,6 +531,7 @@ export default function SetupStepPage() {
               src={moments[activeMoment]?.imageUrl}
               label={`Visual prompt ${activeMoment + 1}`}
               className="aspect-[1.75]"
+              slot={`moment-${activeMoment}`}
               onPreview={(url) => updateMoment(activeMoment, { imageUrl: url })}
             />
           </div>
@@ -583,6 +597,7 @@ export default function SetupStepPage() {
                   label={`Profile photo ${index + 1}`}
                   action={src ? "edit" : "add"}
                   className="aspect-[0.86]"
+                  slot={`photo-${index}`}
                   onPreview={(url) => setPhotoAt(index, url)}
                 />
               );

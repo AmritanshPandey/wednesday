@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/build-pools", "schedule": "30 18 * * 3" },
+    { "path": "/api/cron/allocate", "schedule": "30 3 * * 3" }
+  ]
+}

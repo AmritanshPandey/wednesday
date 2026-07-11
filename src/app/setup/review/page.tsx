@@ -20,8 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
-import { completeSetupAndJoin } from "@/lib/demo/demo-actions";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { completeSetupAndJoin } from "@/lib/app/actions";
+import { useDemoState } from "@/lib/app/store";
 import type { Profile } from "@/types/profile";
 
 type ReviewIcon = React.ComponentType<{ className?: string; stroke?: number }>;

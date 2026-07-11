@@ -7,8 +7,8 @@ import { IconArrowRight, IconMailHeart, IconHourglassLow } from "@tabler/icons-r
 import { Badge } from "@/components/ui/badge";
 import { Envelope } from "@/components/wednesday/envelope";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
-import { getCandidate, rankingComplete } from "@/lib/demo/demo-actions";
-import { useDemoState, useStoreHydrated } from "@/lib/demo/demo-store";
+import { getCandidate, rankingComplete } from "@/lib/app/actions";
+import { useDemoState, useStoreHydrated } from "@/lib/app/store";
 import { DEADLINE_DAY, REVEAL_DAY, WEEK_DAYS } from "@/types/clock";
 
 export default function HomePage() {

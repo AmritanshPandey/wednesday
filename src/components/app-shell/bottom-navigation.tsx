@@ -11,8 +11,8 @@ import {
   IconUserFilled
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils/cn";
-import { rankingComplete } from "@/lib/demo/demo-actions";
-import { useDemoState } from "@/lib/demo/demo-store";
+import { rankingComplete } from "@/lib/app/actions";
+import { useDemoState } from "@/lib/app/store";
 import { REVEAL_DAY } from "@/types/clock";
 
 export function BottomNavigation() {
