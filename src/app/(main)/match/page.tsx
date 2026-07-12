@@ -124,7 +124,7 @@ export default function MatchPage() {
       ? "The rest happens off the app, at your pace."
       : "Replies stay private until it is mutual.";
 
-  const containerClass = showEnvelope ? "px-6 pb-[15rem]" : "min-h-screen flex px-6";
+  const containerClass = showEnvelope ? "px-6 pb-[15rem]" : "min-h-dvh flex px-6";
 
   return (
     <div className={containerClass}>
@@ -245,7 +245,7 @@ export default function MatchPage() {
               </article>
             </div>
 
-            <div className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 bg-background/92 px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+            <div className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 bg-background/92 md:max-w-[560px] px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
               <div className="px-2 text-center">
                 <div className="flex items-center justify-center gap-3 text-accent/60">
                     <span className="h-px w-full bg-current" />

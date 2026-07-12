@@ -37,7 +37,7 @@ export function StepShell({
   stepCount?: number;
 }) {
   return (
-    <div className="mx-auto flex min-h-screen max-w-[430px] flex-col bg-background px-5 pb-8">
+    <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-background px-5 pb-8 md:max-w-[560px]">
       <header className="sticky top-0 z-20 -mx-5 bg-background/95 px-5 pb-3 pt-5 backdrop-blur">
         <div className="flex items-center justify-between">
           <Link

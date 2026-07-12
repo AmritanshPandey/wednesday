@@ -59,25 +59,30 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-[430px] flex-col px-6 pb-10 pt-14">
-      <p className="font-hand text-2xl text-accent">Wednesday</p>
-      <h1 className="mt-2 font-serif text-4xl font-semibold leading-[1.15]">Build a profile people can understand.</h1>
-      <p className="mt-4 text-[15px] leading-7 text-muted-foreground">
+    <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-6 pb-10 pt-14 md:max-w-[560px] lg:max-w-[1040px] lg:flex-row lg:items-center lg:gap-20 lg:px-10 lg:pt-10">
+      <div className="flex flex-1 flex-col">
+      <p className="font-hand text-2xl text-accent lg:text-3xl">Wednesday</p>
+      <h1 className="mt-2 font-serif text-4xl font-semibold leading-[1.15] lg:text-[3.4rem] lg:leading-[1.08]">
+        Build a profile people can understand.
+      </h1>
+      <p className="mt-4 text-[15px] leading-7 text-muted-foreground lg:mt-6 lg:text-base lg:leading-8">
         A few thoughtful details help us find people aligned with your intentions, lifestyle, and future. One
         introduction, every Wednesday — no endless swiping.
       </p>
 
-      <div>
+      <div className="lg:hidden">
         <PostcardsIllustration />
       </div>
 
-      <Callout title="Will take about 10 minutes">
-        Private until you're match-ready
-        <br />
-        You can edit anything later
-      </Callout>
+      <div className="lg:mt-8 lg:max-w-[440px]">
+        <Callout title="Will take about 10 minutes">
+          Private until you're match-ready
+          <br />
+          You can edit anything later
+        </Callout>
+      </div>
 
-      <div className="mt-auto space-y-3 pt-8">
+      <div className="mt-auto space-y-3 pt-8 lg:mt-8 lg:max-w-[440px]">
         {!state.configured ? (
           <div className="rounded-[16px] border border-gold bg-secondary px-4 py-4 text-sm leading-6 text-secondary-foreground">
             <p className="font-bold">Almost there — Firebase isn&apos;t configured yet.</p>
@@ -118,6 +123,14 @@ export default function WelcomePage() {
         >
           How matching works
         </Link>
+      </div>
+      </div>
+
+      {/* Desktop hero art — the postcards get room to breathe. */}
+      <div className="hidden flex-1 items-center justify-center lg:flex">
+        <div className="w-full max-w-[460px] -rotate-1">
+          <PostcardsIllustration />
+        </div>
       </div>
     </main>
   );

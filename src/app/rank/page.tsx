@@ -141,7 +141,7 @@ export default function RankPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto min-h-screen max-w-[430px] px-5 pb-10 pt-5">
+    <main className="mx-auto min-h-dvh max-w-[430px] px-5 pb-10 pt-5 md:max-w-[560px]">
       <div className="mb-4 flex items-center justify-between">
         <Link href="/home" aria-label="Back home" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary">
           <IconChevronLeft className="h-5 w-5" stroke={2} />

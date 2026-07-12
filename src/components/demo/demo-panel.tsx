@@ -9,7 +9,21 @@ import { advanceDay, jumpToWednesday, resetDemo, runAllocationNow } from "@/lib/
 import { useAppState } from "@/lib/app/store";
 import { labelForClock } from "@/lib/week";
 
-const DEV = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === "true";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const noopSubscribe = () => () => {};
+
+/**
+ * True only when actually running on localhost. Checked at runtime against
+ * the real hostname rather than a build-time env flag, so the dev panel can
+ * never leak onto the deployed app even if an env var is misconfigured.
+ */
+function useIsLocalhost() {
+  return React.useSyncExternalStore(
+    noopSubscribe,
+    () => LOCAL_HOSTS.has(window.location.hostname),
+    () => false
+  );
+}
 
 const PHASE_LABEL: Record<string, string> = {
   ranking: "Ranking window is open",
@@ -21,17 +35,18 @@ const PHASE_LABEL: Record<string, string> = {
 
 /**
  * Dev-only time machine. Lets a single machine play the whole Wednesday cycle
- * without waiting for real time, and trigger the allocation on demand. Hidden
- * in production (NEXT_PUBLIC_ENABLE_DEV_TOOLS=false).
+ * without waiting for real time, and trigger the allocation on demand.
+ * Visible only on localhost — never on the deployed app, for any user.
  */
 export function DemoPanel() {
   const state = useAppState();
   const router = useRouter();
   const pathname = usePathname();
+  const isLocalhost = useIsLocalhost();
   const [open, setOpen] = React.useState(false);
   const [running, setRunning] = React.useState(false);
 
-  if (!DEV || !state.signedIn || pathname === "/match") return null;
+  if (!isLocalhost || !state.signedIn || pathname === "/match") return null;
 
   const label = labelForClock(state.clock);
 
@@ -41,7 +56,7 @@ export function DemoPanel() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open dev time controls"
-        className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full border border-accent bg-card px-3.5 py-2.5 text-xs font-bold text-accent shadow-postcard transition hover:bg-secondary sm:right-[calc(50%-215px+1rem)]"
+        className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full border border-accent bg-card px-3.5 py-2.5 text-xs font-bold text-accent shadow-postcard transition hover:bg-secondary sm:right-[calc(50%-215px+1rem)] md:right-[calc(50%-280px+1rem)]"
       >
         <IconCalendarClock className="h-4 w-4" stroke={2.2} />
         {label.short} {label.date}

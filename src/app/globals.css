@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Edu+TAS+Beginner:wght@400..700&display=swap");
 @import "tailwindcss";
 
 @theme inline {
@@ -52,9 +51,8 @@
   --ring: #004f3b;
   --gold: #e6c65e;
   --elevated: #dedad4;
-  --font-sans: "Nunito";
-  --font-serif: "Playfair Display";
-  --font-hand: "Edu TAS Beginner";
+  /* --font-sans / --font-serif / --font-hand are injected on <html> by
+     next/font (see src/app/layout.tsx). */
   /* Tileable fibre grain baked as SVG — used by card surfaces (the global
      canvas texture is the WebGL layer; cards stay on cheap CSS). */
   --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.045'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
@@ -72,15 +70,22 @@
 
   html {
     scroll-behavior: smooth;
+    /* iOS: keep our typography scale when the device rotates. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* iOS: no grey flash on tap — pressed states come from our own styles. */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    min-height: 100vh;
+    /* dvh tracks the iOS Safari toolbar as it collapses; vh does not. */
+    min-height: 100dvh;
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
+    overscroll-behavior-x: none;
   }
 
   a {
@@ -92,6 +97,22 @@
   input,
   textarea {
     font: inherit;
+  }
+
+  /* iOS: no 350ms double-tap-zoom wait on interactive elements. */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  ::selection {
+    background: var(--secondary);
+    color: var(--foreground);
   }
 
   /* Calm baseline for users who prefer low stimulation. */

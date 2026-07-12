@@ -4,24 +4,36 @@ import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
 import { CancellationLines, Stamp } from "@/components/wednesday/stamp";
 
-/** A small amber wax seal — reserved for meaningful moments. */
+/**
+ * A small amber wax seal — reserved for meaningful moments. The shape is a
+ * hair off a perfect circle (unequal border-radius corners) so it reads as
+ * hand-pressed rather than a vector-perfect sticker.
+ */
 export function WaxSeal({ className, letter = "W", size = 56 }: { className?: string; letter?: string; size?: number }) {
   return (
     <span
       aria-hidden
-      className={cn("relative inline-flex shrink-0 -rotate-6 items-center justify-center rounded-full", className)}
+      className={cn("relative inline-flex shrink-0 -rotate-6 items-center justify-center", className)}
       style={{
         width: size,
         height: size,
-        background: "radial-gradient(circle at 34% 30%, #F08A1F 0%, #E17100 42%, #B85A00 100%)",
-        boxShadow: "inset 0 2px 3px rgba(255,235,200,0.5), inset 0 -3px 5px rgba(90,40,0,0.35), 0 3px 8px rgba(90,40,0,0.25)"
+        borderRadius: "46% 54% 52% 48% / 54% 48% 52% 46%",
+        background: "radial-gradient(circle at 30% 26%, #FBBB6B 0%, #F08A1F 26%, #E17100 58%, #B85A00 90%, #9C4C00 100%)",
+        boxShadow:
+          "inset 0 2.5px 3px rgba(255,225,180,0.55), inset 0 -4px 6px rgba(80,35,0,0.4), inset 2px -2px 4px rgba(80,35,0,0.15), 0 1px 0 rgba(255,255,255,0.2), 0 4px 10px rgba(70,30,0,0.3)"
       }}
     >
       <span
-        className="absolute inset-[13%] rounded-full"
-        style={{ boxShadow: "inset 0 1px 2px rgba(90,40,0,0.4), inset 0 -1px 2px rgba(255,235,200,0.35)" }}
+        className="absolute inset-[11%]"
+        style={{
+          borderRadius: "47% 53% 51% 49% / 53% 47% 53% 47%",
+          boxShadow: "inset 0 1px 2px rgba(80,35,0,0.35), inset 0 -1.5px 2px rgba(255,225,180,0.4)"
+        }}
       />
-      <span className="relative font-serif font-bold text-[#FEF9EE]" style={{ fontSize: size * 0.42, textShadow: "0 1px 1px rgba(90,40,0,0.45)" }}>
+      <span
+        className="relative font-serif font-bold text-[#FEF3C6]"
+        style={{ fontSize: size * 0.42, textShadow: "0 1.5px 1.5px rgba(70,30,0,0.5), 0 -1px 0 rgba(255,240,210,0.25)" }}
+      >
         {letter}
       </span>
     </span>
@@ -55,9 +67,11 @@ export function Envelope({
 
   return (
     <div className={cn("relative mx-auto h-56 w-64", className)} style={{ perspective: 900 }} aria-hidden>
-      {/* Back panel with darker inner throat */}
-      <div className="absolute inset-x-0 bottom-0 top-14 rounded-[10px] bg-primary shadow-soft" />
-      <div className="absolute inset-x-1 top-14 h-14 rounded-t-[9px] bg-[#003a2c]" />
+      {/* Back panel with darker inner throat. Its top edge must line up
+          exactly with the note and flap below, or a sliver of the note peeks
+          out above the flap when closed. */}
+      <div className="absolute inset-x-0 bottom-0 top-12 rounded-[10px] bg-primary shadow-soft" />
+      <div className="absolute inset-x-1 top-12 h-14 rounded-t-[9px] bg-[#003a2c]" />
 
       {/* The note inside */}
       <motion.div
@@ -97,11 +111,25 @@ export function Envelope({
         initial={false}
         animate={open ? { rotateX: 178 } : { rotateX: 0 }}
         transition={spring}
-        className={cn("absolute inset-x-0 top-14", open ? "z-[5]" : "z-30")}
+        className={cn("absolute inset-x-0 top-12", open ? "z-[5]" : "z-30")}
         style={{ transformOrigin: "top center", backfaceVisibility: "hidden" }}
       >
         <svg viewBox="0 0 256 92" className="block w-full">
-          <path d="M2 0 h252 l-114 84 q-12 9 -24 0 z" fill="#004F3B" stroke="#003a2c" strokeWidth="1.5" />
+          <defs>
+            <linearGradient id="wednesday-flap-gradient" x1="0" y1="0" x2="0.35" y2="1">
+              <stop offset="0%" stopColor="#0B5C46" />
+              <stop offset="60%" stopColor="#004F3B" />
+              <stop offset="100%" stopColor="#00382A" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M2 0 h252 l-114 84 q-12 9 -24 0 z"
+            fill="url(#wednesday-flap-gradient)"
+            stroke="rgba(0,20,14,0.35)"
+            strokeWidth="1"
+          />
+          {/* A thin light catch along the top fold, like the crease of real paper. */}
+          <path d="M6 2 h244" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeLinecap="round" />
         </svg>
         {sealed && !open ? (
           <span className="absolute left-1/2 top-[52px] -translate-x-1/2">

@@ -141,7 +141,7 @@ function DatePartDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
-        className="flex h-12 w-full items-center justify-between gap-3 rounded-full border border-gold bg-card px-3 text-left text-base font-extrabold text-foreground shadow-sm transition hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-12 w-full items-center justify-between gap-3 rounded-md border border-input bg-card px-3 text-left text-base text-foreground outline-none transition hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="min-w-0 truncate">{selectedLabel}</span>
         <IconChevronDown
@@ -286,7 +286,7 @@ export function DatePicker({
         type="button"
         aria-expanded={open}
         onClick={togglePicker}
-        className="flex h-12 w-full items-center justify-between gap-3 rounded-[16px] border border-gold bg-card px-4 text-left text-sm font-bold shadow-sm transition hover:bg-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-12 w-full items-center justify-between gap-3 rounded-md border border-input bg-card px-3 text-left text-base outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className={cn("min-w-0 truncate", selectedDate ? "text-foreground" : "text-muted-foreground")}>
           {formatDisplayDate(selectedDate) || placeholder}

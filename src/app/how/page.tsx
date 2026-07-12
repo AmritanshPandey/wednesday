@@ -27,7 +27,7 @@ const PIPELINE = [
 
 export default function HowPage() {
   return (
-    <main className="mx-auto min-h-screen max-w-[430px] px-6 pb-12 pt-6">
+    <main className="mx-auto min-h-dvh max-w-[430px] px-6 pb-12 pt-6 md:max-w-[560px]">
       <Link href="/" aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary">
         <IconChevronLeft className="h-5 w-5" stroke={2} />
       </Link>

@@ -114,19 +114,28 @@ export function Stamp({
     holes.push(<circle key={`r${y}`} cx={88} cy={y} r={3} fill="black" />);
   }
 
+  const sheenId = `stamp-sheen-${art}-${tone}`;
+  const perfId = `stamp-perf-${art}-${tone}`;
+
   return (
     <svg viewBox="0 0 88 104" className={cn("h-14 w-12 rotate-2 drop-shadow-sm", className)} aria-hidden>
       <defs>
-        <mask id={`stamp-perf-${art}-${tone}`}>
+        <mask id={perfId}>
           <rect width="88" height="104" fill="white" />
           {holes}
         </mask>
+        {/* A faint diagonal sheen so the stamp reads as glossy paper stock, not a flat swatch. */}
+        <linearGradient id={sheenId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.35" />
+          <stop offset="35%" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
       </defs>
-      <g mask={`url(#stamp-perf-${art}-${tone})`}>
+      <g mask={`url(#${perfId})`}>
         <rect width="88" height="104" fill="#FFFDF6" />
-        <rect width="88" height="104" fill={ink} opacity="0.05" />
+        <rect width="88" height="104" fill={ink} opacity="0.045" />
+        <rect width="88" height="104" fill={`url(#${sheenId})`} />
       </g>
-      <rect x="7.5" y="7.5" width="73" height="89" fill="none" stroke={ink} strokeWidth="1.4" opacity="0.55" rx="2" />
+      <rect x="7.5" y="7.5" width="73" height="89" fill="none" stroke={ink} strokeWidth="1.4" opacity="0.5" rx="2" />
       <g transform="translate(22 22)" color={ink} opacity="0.9">
         <MotifArt motif={art} />
       </g>
