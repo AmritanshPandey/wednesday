@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // firebase-admin (and @google-cloud/firestore) must run as a real Node
-  // module, not be bundled by Turbopack/webpack.
-  serverExternalPackages: ["firebase-admin", "@google-cloud/firestore"],
+  // Bundling firebase-admin (rather than externalizing it) lets Turbopack
+  // resolve its jwks-rsa -> jose dependency correctly. jose 6.x ships as
+  // pure ESM with no CommonJS export, which breaks under Node's native
+  // require() when the package is left external — Turbopack's bundler
+  // handles that ESM/CJS interop at build time instead.
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
