@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Bundling firebase-admin (rather than externalizing it) lets Turbopack
-  // resolve its jwks-rsa -> jose dependency correctly. jose 6.x ships as
-  // pure ESM with no CommonJS export, which breaks under Node's native
-  // require() when the package is left external — Turbopack's bundler
-  // handles that ESM/CJS interop at build time instead.
+  // Next.js externalizes firebase-admin by default (baked into
+  // next/dist/lib/server-external-packages.jsonc, independent of anything
+  // here), which forces it to load via Node's native require() at runtime.
+  // Its jwks-rsa -> jose chain is pure ESM in jose 6.x (no CJS export), which
+  // crashes under native require(). transpilePackages explicitly opts it
+  // out of that default externalization so Turbopack bundles it instead,
+  // where ESM/CJS interop is handled correctly at build time.
+  transpilePackages: ["firebase-admin"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
