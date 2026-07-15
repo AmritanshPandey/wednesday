@@ -25,6 +25,7 @@ export function blankProfile(): Profile {
     lifestyleExpectation: "",
     drinking: "",
     smoking: "",
+    cannabis: "",
     food: "",
     weekend: [],
     fitness: "",
@@ -45,7 +46,9 @@ export function blankProfile(): Profile {
     story: "",
     moments: [{ caption: "" }, { caption: "" }, { caption: "" }],
     photoUrl: "",
-    extraPhotoUrls: []
+    extraPhotoUrls: [],
+    linkedinHandle: "",
+    instagramHandle: ""
   };
 }
 
@@ -61,6 +64,7 @@ export function blankPreferences(): Preferences {
     financePref: "No preference",
     smokingPref: "Fine either way",
     drinkingPref: "Fine either way",
+    cannabisPref: "Fine either way",
     foodPref: "No preference",
     dealBreakers: emptyDealBreakers()
   };

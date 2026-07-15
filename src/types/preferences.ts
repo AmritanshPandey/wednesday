@@ -8,6 +8,7 @@ export const PREFERENCE_SECTIONS = [
   "finance",
   "smoking",
   "drinking",
+  "cannabis",
   "food"
 ] as const;
 
@@ -24,6 +25,7 @@ export type Preferences = {
   financePref: string;
   smokingPref: string;
   drinkingPref: string;
+  cannabisPref: string;
   foodPref: string;
   /** Sections the user marked as non-negotiable. */
   dealBreakers: Record<PreferenceSectionKey, boolean>;

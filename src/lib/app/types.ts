@@ -66,7 +66,7 @@ export function threadIdFor(weekId: string, a: string, b: string): string {
 
 /** Strip fields that should never leave the server / reach other users. */
 export function toPublicProfile(profile: Profile): Profile {
-  return { ...profile, taxBracket: "" };
+  return { ...profile, taxBracket: "", linkedinHandle: "", instagramHandle: "" };
 }
 
 export type PoolEntryLive = PoolEntry & { profile: Profile };

@@ -102,6 +102,8 @@ export const DRINKING = ["No", "Occasionally", "Socially", "Regularly", "Prefer 
 
 export const SMOKING = ["No", "Occasionally", "Regularly", "Prefer not to say"] as const;
 
+export const CANNABIS = ["No", "Occasionally", "Regularly", "Prefer not to say"] as const;
+
 export const FOODS = ["Vegetarian", "Eggetarian", "Non-vegetarian", "Vegan", "No strong preference"] as const;
 
 export const WEEKENDS = [
@@ -221,6 +223,8 @@ export const PREF_FINANCE = [
 ] as const;
 
 export const PREF_SMOKING = ["Fine either way", "Prefer non-smoker", "Non-smoker only"] as const;
+
+export const PREF_CANNABIS = ["Fine either way", "Prefer non-user", "Non-user only"] as const;
 
 export const PREF_DRINKING = ["Fine either way", "Prefer rarely or never", "Non-drinker only"] as const;
 

@@ -60,6 +60,7 @@ export function deriveCandidatePreferences(candidate: Profile): Preferences {
     financePref: "No preference",
     smokingPref,
     drinkingPref: "Fine either way",
+    cannabisPref: "Fine either way",
     foodPref,
     dealBreakers: { ...dealBreakers, age: true }
   };

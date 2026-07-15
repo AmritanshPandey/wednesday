@@ -73,6 +73,7 @@ export function ProfileDetail({
         <Row label="Food" value={profile.food} />
         <Row label="Drinking" value={profile.drinking} />
         <Row label="Smoking" value={profile.smoking} />
+        <Row label="Cannabis" value={profile.cannabis} />
         <Row label="Fitness" value={profile.fitness} />
         <Row label="Weekends" value={profile.weekend.join(", ")} />
       </Section>

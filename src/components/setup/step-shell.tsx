@@ -3,9 +3,22 @@
 import Link from "next/link";
 import { IconChevronLeft } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils/cn";
 
-export const SETUP_STEP_COUNT = 11;
+export const SETUP_STEP_COUNT = 12;
+
+/** Groups the numbered setup steps into the sections shown as segmented tabs. */
+const SETUP_SECTIONS = [
+  { label: "Basics", steps: [1, 2, 3, 4, 5, 6, 7, 8] },
+  { label: "Photos", steps: [9, 10] },
+  { label: "Socials", steps: [11] },
+  { label: "Compatibility", steps: [12] }
+] as const;
+
+function sectionForStep(step: number) {
+  const index = SETUP_SECTIONS.findIndex((section) => (section.steps as readonly number[]).includes(step));
+  return index === -1 ? 0 : index;
+}
 
 export function StepShell({
   step,
@@ -18,9 +31,7 @@ export function StepShell({
   secondaryLabel,
   nextDisabled,
   backHref,
-  headerTitle = "Profile setup",
-  showStepProgress = true,
-  stepCount = SETUP_STEP_COUNT
+  headerTitle = "Profile setup"
 }: {
   step: number;
   title: string;
@@ -33,9 +44,11 @@ export function StepShell({
   nextDisabled?: boolean;
   backHref: string;
   headerTitle?: string;
-  showStepProgress?: boolean;
-  stepCount?: number;
 }) {
+  const activeSectionIndex = sectionForStep(step);
+  const activeSection = SETUP_SECTIONS[activeSectionIndex];
+  const stepWithinSection = activeSection.steps.indexOf(step as never) + 1;
+
   return (
     <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-background px-5 pb-8 md:max-w-[560px]">
       <header className="sticky top-0 z-20 -mx-5 bg-background/95 px-5 pb-3 pt-5 backdrop-blur">
@@ -48,13 +61,38 @@ export function StepShell({
             <IconChevronLeft className="h-5 w-5" stroke={2} />
           </Link>
           <span className="text-sm font-bold">{headerTitle}</span>
-          {showStepProgress ? (
-            <span className="text-xs font-bold text-accent">Step {step}/{stepCount}</span>
-          ) : (
-            <span className="h-9 w-9" />
-          )}
+          <span className="h-9 w-9" />
         </div>
-        {showStepProgress ? <Progress value={(step / stepCount) * 100} className="mt-3 bg-muted" /> : null}
+
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {SETUP_SECTIONS.map((section, index) => (
+            <div key={section.label} className="min-w-0">
+              <div
+                className={cn(
+                  "h-1.5 rounded-full transition-colors duration-300",
+                  index < activeSectionIndex ? "bg-primary" : index === activeSectionIndex ? "bg-accent" : "bg-muted"
+                )}
+              />
+              <p
+                className={cn(
+                  "mt-1.5 truncate text-center text-[9px] font-extrabold uppercase tracking-[0.02em] transition-colors duration-300 min-[430px]:text-[10px] min-[430px]:tracking-[0.14em]",
+                  index === activeSectionIndex
+                    ? "text-foreground"
+                    : index < activeSectionIndex
+                      ? "text-primary/60"
+                      : "text-muted-foreground/60"
+                )}
+              >
+                {section.label}
+              </p>
+            </div>
+          ))}
+        </div>
+        {activeSection.steps.length > 1 ? (
+          <p className="mt-1 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Step {stepWithinSection} of {activeSection.steps.length}
+          </p>
+        ) : null}
       </header>
 
       <main className="flex-1 pt-4">

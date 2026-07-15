@@ -2,6 +2,7 @@ import type { Preferences, PreferenceSectionKey } from "@/types/preferences";
 import type { Profile } from "@/types/profile";
 import type { CategoryScore } from "@/types/ranking";
 import {
+  CANNABIS,
   DRINKING,
   FITNESS,
   INTENTS,
@@ -117,10 +118,11 @@ export function compatibilityBreakdown(a: Profile, b: Profile): CategoryScore[] 
       score:
         (ordinalCloseness(DRINKING, a.drinking, b.drinking) +
           ordinalCloseness(SMOKING, a.smoking, b.smoking) +
+          ordinalCloseness(CANNABIS, a.cannabis, b.cannabis) +
           foodCloseness(a.food, b.food) +
           ordinalCloseness(FITNESS, a.fitness, b.fitness) +
           jaccard(a.weekend, b.weekend)) /
-        5
+        6
     },
     {
       key: "values",
@@ -207,6 +209,8 @@ export function satisfiesPreference(
       return candidate.lifestyleExpectation === owner.lifestyleExpectation;
     case "smoking":
       return NEUTRAL_PREFS.has(prefs.smokingPref) ? true : candidate.smoking === "No";
+    case "cannabis":
+      return NEUTRAL_PREFS.has(prefs.cannabisPref) ? true : candidate.cannabis === "No";
     case "drinking":
       if (NEUTRAL_PREFS.has(prefs.drinkingPref)) return true;
       if (prefs.drinkingPref === "Prefer rarely or never")
@@ -240,6 +244,7 @@ export function softPreferenceAdjustment(prefs: Preferences, owner: Profile, can
     "finance",
     "smoking",
     "drinking",
+    "cannabis",
     "food"
   ];
   let adjustment = 0;

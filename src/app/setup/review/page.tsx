@@ -22,14 +22,16 @@ import { Button } from "@/components/ui/button";
 import { ProfilePhoto } from "@/components/wednesday/profile-photo";
 import { completeSetupAndJoin } from "@/lib/app/actions";
 import { useDemoState } from "@/lib/app/store";
+import { cn } from "@/lib/utils/cn";
 import type { Profile } from "@/types/profile";
 
 type ReviewIcon = React.ComponentType<{ className?: string; stroke?: number }>;
-type ReadinessItem = { label: string; status: string; icon: ReviewIcon };
+type ReadinessItem = { label: string; status: string; icon: ReviewIcon; complete?: boolean };
 
 function readinessItems(profile: Profile): ReadinessItem[] {
   const photoCount = [profile.localPhotoUrl ?? profile.photoUrl, ...(profile.extraPhotoUrls ?? [])].filter(Boolean).length;
   const visualPromptCount = profile.moments.filter((moment) => moment.title || moment.caption || moment.imageUrl).length;
+  const socialsCount = [profile.linkedinHandle, profile.instagramHandle].filter(Boolean).length;
 
   return [
     { label: "Profile readiness", status: "Completed", icon: IconUserCheck },
@@ -37,13 +39,14 @@ function readinessItems(profile: Profile): ReadinessItem[] {
     { label: "Visual prompts", status: `${Math.min(visualPromptCount, 3)}/3 added`, icon: IconSparkles },
     { label: "Match preferences", status: "Completed", icon: IconAdjustmentsHorizontal },
     { label: "Phone number", status: "Completed", icon: IconPhone },
-    { label: "LinkedIn verified", status: "Verified", icon: IconBrandLinkedin },
+    { label: "Socials", status: `${socialsCount}/2 added`, icon: IconBrandLinkedin, complete: socialsCount > 0 },
     { label: "Photo verification", status: "Verified", icon: IconCameraCheck }
   ];
 }
 
 function ReadinessRow({ item }: { item: ReadinessItem }) {
   const Icon = item.icon;
+  const complete = item.complete ?? true;
 
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 last:border-b-0">
@@ -53,9 +56,9 @@ function ReadinessRow({ item }: { item: ReadinessItem }) {
         </span>
         <span className="truncate text-[15px] font-bold text-foreground">{item.label}</span>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-primary">
+      <div className={cn("flex shrink-0 items-center gap-1.5 text-sm font-bold", complete ? "text-primary" : "text-muted-foreground")}>
         <span>{item.status}</span>
-        <IconCircleCheckFilled className="h-4.5 w-4.5" />
+        {complete ? <IconCircleCheckFilled className="h-4.5 w-4.5" /> : null}
       </div>
     </div>
   );
@@ -151,7 +154,7 @@ export default function ReviewPage() {
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col bg-background px-5 pb-8 text-foreground md:max-w-[560px]">
       <header className="sticky top-0 z-20 -mx-5 bg-background/95 px-5 pb-3 pt-5 backdrop-blur">
         <div className="flex items-center justify-between">
-          <Link href="/setup/11" aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary">
+          <Link href="/setup/12" aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary">
             <IconChevronLeft className="h-5 w-5" stroke={2.2} />
           </Link>
           <span className="text-sm font-bold">Review profile</span>

@@ -30,6 +30,7 @@ export type Profile = {
 
   drinking: string;
   smoking: string;
+  cannabis: string;
   food: string;
   weekend: string[];
   fitness: string;
@@ -56,4 +57,7 @@ export type Profile = {
   photoUrl?: string;
   localPhotoUrl?: string;
   extraPhotoUrls?: string[];
+
+  linkedinHandle?: string;
+  instagramHandle?: string;
 };

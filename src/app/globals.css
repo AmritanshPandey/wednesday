@@ -181,6 +181,70 @@
   );
 }
 
+/* Hand-stamped ink mark for completed states — RECEIVED / DONE. Layered so
+   Tailwind positioning utilities (absolute, right-*, top-*) can override. */
+@layer components {
+  .rubber-stamp {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border: 2px solid currentColor;
+    border-radius: 7px;
+    padding: 0.2rem 0.55rem;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(0, 79, 59, 0.8);
+    transform: rotate(-5deg);
+  }
+
+  .rubber-stamp::after {
+    content: "";
+    position: absolute;
+    inset: 2.5px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    opacity: 0.5;
+  }
+
+  /* Album photo corner: a folded paper pocket holding a mounted photo. */
+  .photo-corner {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+    background: linear-gradient(135deg, #fef3c6 0%, #fdf6dd 55%, #f0e0b2 100%);
+    filter: drop-shadow(1px 1px 1.5px rgba(0, 79, 59, 0.28));
+    pointer-events: none;
+  }
+}
+
+@keyframes stamp-press {
+  0% {
+    transform: rotate(-14deg) scale(1.6);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-4deg) scale(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-5deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.rubber-stamp-in {
+  animation: stamp-press 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rubber-stamp-in {
+    animation: none;
+  }
+}
+
 /* Ruled writing lines for letter paper. */
 .letter-ruled {
   background-image: repeating-linear-gradient(

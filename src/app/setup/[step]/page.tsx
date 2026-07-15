@@ -3,24 +3,37 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  IconBrandLinkedinFilled,
-  IconCircleCheckFilled,
+  IconBrandInstagram,
+  IconBrandLinkedin,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClock,
+  IconCup,
+  IconEye,
+  IconHeart,
+  IconMapPin,
+  IconMountain,
   IconPhoto,
   IconPencil,
-  IconPlus
+  IconPlus,
+  IconX
 } from "@tabler/icons-react";
+import { cn } from "@/lib/utils/cn";
 import { ChipMultiSelect, ChipSelect } from "@/components/ui/chip";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { RangeSelector } from "@/components/ui/range-selector";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Callout, FieldBlock, StepShell, SETUP_STEP_COUNT } from "@/components/setup/step-shell";
+import { RubberStamp } from "@/components/wednesday/rubber-stamp";
 import { reachSetupStep, toggleDealBreaker, updatePreferences, updateProfile, uploadProfilePhoto } from "@/lib/app/actions";
 import { useDemoState } from "@/lib/app/store";
 import type { Profile } from "@/types/profile";
-import type { PreferenceSectionKey } from "@/types/preferences";
+import type { PreferenceSectionKey, Preferences } from "@/types/preferences";
 import {
+  CANNABIS,
   CHILDREN_VIEWS,
   CITIES,
   COMMUNICATION_STYLES,
@@ -37,6 +50,7 @@ import {
   LIVING_AFTER_MARRIAGE,
   PARTNER_SUPPORT,
   PARTNER_WITH_KIDS,
+  PREF_CANNABIS,
   PREF_CHILDREN,
   PREF_CITY,
   PREF_DRINKING,
@@ -69,7 +83,8 @@ const STEP_META: Record<number, { title: string; subtitle: string }> = {
   8: { title: "The things you enjoy", subtitle: "Add the little things that make you, you." },
   9: { title: "A little more of your world", subtitle: "Choose up to 3 visual prompts that feel like you." },
   10: { title: "Put a face to your profile", subtitle: "Add a few clear photos so people can get a real sense of you." },
-  11: { title: "Who would you like to meet?", subtitle: "Set the things that matter most. You can change them anytime." }
+  11: { title: "Verify it's really you", subtitle: "Link a social profile so our team can confirm you're a real person serious about meeting someone." },
+  12: { title: "Who would you like to meet?", subtitle: "Set the things that matter most. You can change them anytime." }
 };
 
 const MIN_PROFILE_AGE = 18;
@@ -138,7 +153,8 @@ function ImageUploadSlot({
   onPreview,
   className,
   action = "add",
-  slot = "main"
+  slot = "main",
+  framed = false
 }: {
   src?: string;
   label: string;
@@ -146,6 +162,8 @@ function ImageUploadSlot({
   className?: string;
   action?: "add" | "edit";
   slot?: string;
+  /** Album treatment: photo corners once an image is mounted. */
+  framed?: boolean;
 }) {
   const [error, setError] = React.useState<string | null>(null);
   const [uploading, setUploading] = React.useState(false);
@@ -176,7 +194,11 @@ function ImageUploadSlot({
       <label className="block">
         <input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={onChange} />
         <span
-          className={`relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[18px] border-2 border-dashed border-primary bg-muted text-muted-foreground transition hover:bg-secondary ${className ?? ""}`}
+          className={cn(
+            "relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[18px] border-2 bg-muted text-muted-foreground transition hover:bg-secondary",
+            src ? "border-solid border-border" : "border-dashed border-primary",
+            className
+          )}
         >
           {src ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -184,6 +206,14 @@ function ImageUploadSlot({
           ) : (
             <IconPhoto className="h-9 w-9" stroke={1.8} />
           )}
+          {framed && src ? (
+            <>
+              <span className="photo-corner left-1.5 top-1.5" />
+              <span className="photo-corner right-1.5 top-1.5 rotate-90" />
+              <span className="photo-corner bottom-1.5 left-1.5 -rotate-90" />
+              <span className="photo-corner bottom-1.5 right-1.5 rotate-180" />
+            </>
+          ) : null}
           {uploading ? (
             <span className="absolute inset-0 flex items-center justify-center bg-foreground/30 text-xs font-bold text-card">
               Uploading…
@@ -207,6 +237,9 @@ export default function SetupStepPage() {
   const profile = state.profile;
   const [customInterest, setCustomInterest] = React.useState("");
   const [activeMomentIndex, setActiveMomentIndex] = React.useState(0);
+  const [showPhotoConfirm, setShowPhotoConfirm] = React.useState(false);
+  const [linkedinInput, setLinkedinInput] = React.useState("");
+  const [instagramInput, setInstagramInput] = React.useState("");
   const interestOptions = React.useMemo(() => {
     const base = new Set(INTERESTS.map(normalizeOption));
     const custom = profile.interests.filter((interest) => !base.has(normalizeOption(interest)));
@@ -277,20 +310,20 @@ export default function SetupStepPage() {
     set({ extraPhotoUrls: nextPhotos });
   };
 
+  const bothPhotosPresent = Boolean((profile.localPhotoUrl ?? profile.photoUrl) && extraPhotoUrls[0]);
+
   return (
     <StepShell
       step={step}
       title={meta.title}
       subtitle={meta.subtitle}
-      onNext={next}
+      onNext={step === 10 && bothPhotosPresent ? () => setShowPhotoConfirm(true) : next}
       onSecondary={step === 9 || step === 10 ? next : undefined}
       backHref={step === 1 ? "/" : `/setup/${step - 1}`}
       nextLabel={step === SETUP_STEP_COUNT ? "Review my profile" : step === 9 || step === 10 ? "Continue" : "Next"}
       secondaryLabel={step === 9 || step === 10 ? "Skip" : undefined}
       nextDisabled={step === 1 && (profile.name.trim().length === 0 || !hasValidBirthDate)}
-      headerTitle={step === SETUP_STEP_COUNT ? "Partner preference" : "Profile setup"}
-      showStepProgress={step !== SETUP_STEP_COUNT}
-      stepCount={SETUP_STEP_COUNT - 1}
+      headerTitle={step === SETUP_STEP_COUNT ? "Compatibility" : "Profile setup"}
     >
       {step === 1 ? (
         <>
@@ -343,17 +376,6 @@ export default function SetupStepPage() {
           <FieldBlock label="College or university">
             <Input value={profile.college} onChange={(event) => set({ college: event.target.value })} />
           </FieldBlock>
-          <div className="border-t border-dashed border-border pt-5">
-            <p className="text-sm font-semibold">Verify all of this info via LinkedIn</p>
-            <button
-              type="button"
-              disabled
-              className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#2867b2]/40 text-sm font-bold text-[#2867b2] opacity-60"
-            >
-              <IconBrandLinkedinFilled className="h-4 w-4" />
-              Connect LinkedIn — coming after the MVP
-            </button>
-          </div>
         </>
       ) : null}
 
@@ -420,6 +442,9 @@ export default function SetupStepPage() {
           </FieldBlock>
           <FieldBlock label="Smoking">
             <ChipSelect options={SMOKING} value={profile.smoking} onChange={(value) => set({ smoking: value })} />
+          </FieldBlock>
+          <FieldBlock label="Cannabis">
+            <ChipSelect options={CANNABIS} value={profile.cannabis} onChange={(value) => set({ cannabis: value })} />
           </FieldBlock>
           <FieldBlock label="Food preference">
             <ChipSelect options={FOODS} value={profile.food} onChange={(value) => set({ food: value })} />
@@ -587,44 +612,223 @@ export default function SetupStepPage() {
 
       {step === 10 ? (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            {Array.from({ length: MAX_PROFILE_PHOTOS }, (_, index) => {
-              const src = index === 0 ? profile.localPhotoUrl ?? profile.photoUrl : extraPhotoUrls[index - 1];
-              return (
-                <ImageUploadSlot
-                  key={index}
-                  src={src}
-                  label={`Profile photo ${index + 1}`}
-                  action={src ? "edit" : "add"}
-                  className="aspect-[0.86]"
-                  slot={`photo-${index}`}
-                  onPreview={(url) => setPhotoAt(index, url)}
-                />
-              );
-            })}
-          </div>
-
-          <Callout>
+          <Callout title="Photo requirements">
             <ul className="space-y-1 font-semibold text-primary">
-              <li>Use recent photos</li>
-              <li>No group photo first</li>
-              <li>No sunglasses in your first photo</li>
-              <li>No screenshots or heavily edited photos</li>
+              <li>One headshot, one full photo (about knees up)</li>
+              <li>Face the camera, in simple backgrounds and good lighting</li>
+              <li>No sunglasses, hats, or anything obscuring your face</li>
+              <li>No heavy filters, black &amp; white photos, or group shots</li>
             </ul>
           </Callout>
 
-          <button
-            type="button"
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-primary text-base font-bold text-primary transition hover:bg-secondary"
-          >
-            <IconCircleCheckFilled className="h-6 w-6" />
-            Verify Photos
-          </button>
+          <div className="grid grid-cols-2 gap-4">
+            {Array.from({ length: MAX_PROFILE_PHOTOS }, (_, index) => {
+              const src = index === 0 ? profile.localPhotoUrl ?? profile.photoUrl : extraPhotoUrls[index - 1];
+              const label = index === 0 ? "Headshot" : index === 1 ? "Full Photo" : `Additional photo ${index}`;
+              const subtitle =
+                index === 0 ? "Just your face and shoulders" : index === 1 ? "From about the knees up" : "Optional";
+              return (
+                <div key={index}>
+                  <p className="mb-0.5 font-serif text-lg text-foreground">{label}</p>
+                  <p className="mb-2.5 text-xs leading-5 text-muted-foreground">{subtitle}</p>
+                  <ImageUploadSlot
+                    src={src}
+                    label={label}
+                    action={src ? "edit" : "add"}
+                    className="aspect-[0.86]"
+                    slot={index === 0 ? "headshot" : `full-photo-${index}`}
+                    onPreview={(url) => setPhotoAt(index, url)}
+                    framed
+                  />
+                </div>
+              );
+            })}
+          </div>
         </>
       ) : null}
 
-      {step === 11 ? <PreferencesStep /> : null}
+      {step === 11 ? (
+        <SocialsStep
+          linkedinInput={linkedinInput}
+          instagramInput={instagramInput}
+          onLinkedinInputChange={setLinkedinInput}
+          onInstagramInputChange={setInstagramInput}
+          linkedinHandle={profile.linkedinHandle ?? ""}
+          instagramHandle={profile.instagramHandle ?? ""}
+          onAddLinkedin={() => {
+            const value = linkedinInput.trim();
+            if (!value) return;
+            set({ linkedinHandle: value });
+            setLinkedinInput("");
+          }}
+          onAddInstagram={() => {
+            const value = instagramInput.trim();
+            if (!value) return;
+            set({ instagramHandle: value });
+            setInstagramInput("");
+          }}
+        />
+      ) : null}
+
+      {step === 12 ? <CompatibilityStep /> : null}
+
+      <Dialog
+        open={showPhotoConfirm}
+        onOpenChange={setShowPhotoConfirm}
+        title="Before you submit your photos"
+        description="Every photo is reviewed by our team. These will delay your application:"
+      >
+        <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border-[1.5px] border-primary/30 text-primary">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-primary/40">
+            <IconEye className="h-5 w-5" stroke={1.8} />
+          </span>
+        </span>
+        <ul className="space-y-3">
+          {[
+            "Wearing sunglasses or a hat",
+            "Not looking at the camera in your headshot",
+            "Phone or object covering your face",
+            "Black & white or heavy filters"
+          ].map((mistake) => (
+            <li key={mistake} className="flex items-center gap-3 text-sm font-semibold text-foreground">
+              <IconX className="h-4 w-4 shrink-0 text-destructive" stroke={2.5} />
+              {mistake}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-5 text-center font-serif text-sm italic text-muted-foreground">
+          A quick check now saves you from resubmitting later.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setShowPhotoConfirm(false)}
+            className="flex h-12 items-center justify-center rounded-full border border-gold bg-card text-sm font-bold text-foreground transition hover:bg-secondary"
+          >
+            Go back
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPhotoConfirm(false);
+              next();
+            }}
+            className="flex h-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+          >
+            Submit photos
+          </button>
+        </div>
+      </Dialog>
     </StepShell>
+  );
+}
+
+// ---- Socials verification ---------------------------------------------
+
+function SocialsStep({
+  linkedinInput,
+  instagramInput,
+  onLinkedinInputChange,
+  onInstagramInputChange,
+  linkedinHandle,
+  instagramHandle,
+  onAddLinkedin,
+  onAddInstagram
+}: {
+  linkedinInput: string;
+  instagramInput: string;
+  onLinkedinInputChange: (value: string) => void;
+  onInstagramInputChange: (value: string) => void;
+  linkedinHandle: string;
+  instagramHandle: string;
+  onAddLinkedin: () => void;
+  onAddInstagram: () => void;
+}) {
+  return (
+    <>
+      <Callout>
+        To help keep our members safe from fake or duplicate accounts, we ask every member to link at least one
+        social profile as part of onboarding. This helps our team verify that you are a real person who is serious
+        about meeting someone.
+      </Callout>
+
+      <SocialCard
+        icon={<IconBrandLinkedin className="h-5 w-5 text-[#0A66C2]" stroke={1.9} />}
+        name="LinkedIn"
+        description="Your study or career path."
+        placeholder="Paste URL or type username"
+        value={linkedinInput}
+        onValueChange={onLinkedinInputChange}
+        onAdd={onAddLinkedin}
+        savedHandle={linkedinHandle}
+      />
+
+      <SocialCard
+        icon={<IconBrandInstagram className="h-5 w-5 text-[#C1358F]" stroke={1.9} />}
+        name="Instagram"
+        description="Your Instagram handle."
+        placeholder="@ yourhandle"
+        value={instagramInput}
+        onValueChange={onInstagramInputChange}
+        onAdd={onAddInstagram}
+        savedHandle={instagramHandle}
+      />
+
+      <p className="text-center font-serif text-sm italic leading-6 text-muted-foreground">
+        We review every application individually. You will receive a note once your profile is approved.
+      </p>
+    </>
+  );
+}
+
+function SocialCard({
+  icon,
+  name,
+  description,
+  placeholder,
+  value,
+  onValueChange,
+  onAdd,
+  savedHandle
+}: {
+  icon: React.ReactNode;
+  name: string;
+  description: string;
+  placeholder: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  onAdd: () => void;
+  savedHandle: string;
+}) {
+  return (
+    <div className="paper-texture rounded-[18px] border border-border p-5 shadow-sm">
+      <div className="flex items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-border bg-card shadow-sm">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <p className="font-serif text-xl leading-tight text-foreground">{name}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+        <Input value={value} onChange={(event) => onValueChange(event.target.value)} placeholder={placeholder} />
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={value.trim().length === 0}
+          className="flex h-12 shrink-0 items-center justify-center rounded-full bg-primary px-7 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
+      {savedHandle ? (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-[12px] bg-secondary/60 py-2 pl-4 pr-3">
+          <span className="handwritten min-w-0 truncate text-xl text-primary">{savedHandle}</span>
+          <RubberStamp>Received</RubberStamp>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -642,7 +846,9 @@ function PreferenceSection({
   const state = useDemoState();
   const isDealBreaker = state.preferences.dealBreakers[section];
   return (
-    <section className={`rounded-[18px] border p-4 transition ${isDealBreaker ? "border-primary/50 bg-card" : "border-border bg-card"}`}>
+    <section
+      className={`paper-texture rounded-[18px] border p-4 shadow-sm transition ${isDealBreaker ? "border-primary/50" : "border-border"}`}
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="text-[15px] font-bold">{title}</p>
         <div className="flex items-center gap-2">
@@ -662,56 +868,261 @@ function PreferenceSection({
   );
 }
 
-function PreferencesStep() {
+function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferences) {
+  switch (section) {
+    case "age":
+      return (
+        <PreferenceSection title="Age range" section="age">
+          <RangeSelector
+            min={MIN_PREFERENCE_AGE}
+            max={MAX_PREFERENCE_AGE}
+            value={{ min: prefs.ageMin, max: prefs.ageMax }}
+            onChange={(value) => updatePreferences({ ageMin: value.min, ageMax: value.max })}
+          />
+        </PreferenceSection>
+      );
+    case "city":
+      return (
+        <PreferenceSection title="Where they live" section="city">
+          <ChipSelect options={PREF_CITY} value={prefs.cityPref} onChange={(value) => updatePreferences({ cityPref: value })} />
+        </PreferenceSection>
+      );
+    case "religion":
+      return (
+        <PreferenceSection title="Cultural or religious preference" section="religion">
+          <ChipSelect
+            options={PREF_RELIGION}
+            value={prefs.religionPref}
+            onChange={(value) => updatePreferences({ religionPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "timeline":
+      return (
+        <PreferenceSection title="Marriage timeline" section="timeline">
+          <ChipSelect
+            options={PREF_TIMELINE}
+            value={prefs.timelinePref}
+            onChange={(value) => updatePreferences({ timelinePref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "children":
+      return (
+        <PreferenceSection title="Views on children" section="children">
+          <ChipSelect
+            options={PREF_CHILDREN}
+            value={prefs.childrenPref}
+            onChange={(value) => updatePreferences({ childrenPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "relocation":
+      return (
+        <PreferenceSection title="Future location plans" section="relocation">
+          <ChipSelect
+            options={PREF_RELOCATION}
+            value={prefs.relocationPref}
+            onChange={(value) => updatePreferences({ relocationPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "finance":
+      return (
+        <PreferenceSection title="Financial outlook" section="finance">
+          <ChipSelect
+            options={PREF_FINANCE}
+            value={prefs.financePref}
+            onChange={(value) => updatePreferences({ financePref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "smoking":
+      return (
+        <PreferenceSection title="Smoking" section="smoking">
+          <ChipSelect
+            options={PREF_SMOKING}
+            value={prefs.smokingPref}
+            onChange={(value) => updatePreferences({ smokingPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "drinking":
+      return (
+        <PreferenceSection title="Drinking" section="drinking">
+          <ChipSelect
+            options={PREF_DRINKING}
+            value={prefs.drinkingPref}
+            onChange={(value) => updatePreferences({ drinkingPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "cannabis":
+      return (
+        <PreferenceSection title="Cannabis" section="cannabis">
+          <ChipSelect
+            options={PREF_CANNABIS}
+            value={prefs.cannabisPref}
+            onChange={(value) => updatePreferences({ cannabisPref: value })}
+          />
+        </PreferenceSection>
+      );
+    case "food":
+      return (
+        <PreferenceSection title="Food" section="food">
+          <ChipSelect options={PREF_FOOD} value={prefs.foodPref} onChange={(value) => updatePreferences({ foodPref: value })} />
+        </PreferenceSection>
+      );
+    default:
+      return null;
+  }
+}
+
+type CompatibilityCategoryId = "basics" | "roots" | "family" | "everyday";
+
+const COMPATIBILITY_CATEGORIES: {
+  id: CompatibilityCategoryId;
+  label: string;
+  subtitle: string;
+  icon: typeof IconMapPin;
+  minutes: number;
+  sections: PreferenceSectionKey[];
+}[] = [
+  {
+    id: "basics",
+    label: "The Basics",
+    subtitle: "Age and where they live",
+    icon: IconMapPin,
+    minutes: 1,
+    sections: ["age", "city"]
+  },
+  {
+    id: "roots",
+    label: "Roots & Values",
+    subtitle: "What grounds you",
+    icon: IconHeart,
+    minutes: 1,
+    sections: ["religion", "finance"]
+  },
+  {
+    id: "family",
+    label: "Family & Future",
+    subtitle: "Where you're both heading",
+    icon: IconMountain,
+    minutes: 2,
+    sections: ["timeline", "children", "relocation"]
+  },
+  {
+    id: "everyday",
+    label: "Everyday Life",
+    subtitle: "How you live day-to-day",
+    icon: IconCup,
+    minutes: 2,
+    sections: ["smoking", "drinking", "cannabis", "food"]
+  }
+];
+
+function CompatibilityStep() {
   const state = useDemoState();
   const prefs = state.preferences;
+  const [activeCategory, setActiveCategory] = React.useState<CompatibilityCategoryId | null>(null);
+  const [activeQuestionIndex, setActiveQuestionIndex] = React.useState(0);
+  const [visitedSections, setVisitedSections] = React.useState<Set<PreferenceSectionKey>>(new Set());
+
+  const category = COMPATIBILITY_CATEGORIES.find((item) => item.id === activeCategory) ?? null;
+
+  if (!category) {
+    return (
+      <>
+        <p className="font-serif text-sm italic leading-6 text-muted-foreground">
+          Your answers shape who we introduce you to. You can complete sections in any order.
+        </p>
+        {COMPATIBILITY_CATEGORIES.map((item) => {
+          const done = item.sections.every((section) => visitedSections.has(section));
+          const Icon = item.icon;
+          return (
+            <div key={item.id} className="paper-texture relative rounded-[18px] border border-border p-5 shadow-sm">
+              {done ? <RubberStamp className="absolute right-4 top-4">Done</RubberStamp> : null}
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary/30 text-primary">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-primary/40">
+                  <Icon className="h-4.5 w-4.5" stroke={1.7} />
+                </span>
+              </span>
+              <p className="letterpress mt-3.5 font-serif text-[22px] leading-tight text-foreground">{item.label}</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.subtitle}</p>
+              <p className="mt-3 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                <IconClock className="h-3.5 w-3.5" stroke={2.2} />
+                {item.sections.length} questions · ~{item.minutes} min
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCategory(item.id);
+                  setActiveQuestionIndex(0);
+                }}
+                className={cn(
+                  "mt-4 flex h-12 w-full items-center justify-center rounded-full text-sm font-bold transition",
+                  done
+                    ? "border border-gold bg-card text-foreground hover:bg-secondary"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                {done ? "Revisit" : "Start"}
+              </button>
+            </div>
+          );
+        })}
+      </>
+    );
+  }
+
+  const section = category.sections[activeQuestionIndex];
+  const isLastQuestion = activeQuestionIndex === category.sections.length - 1;
 
   return (
     <>
-      <PreferenceSection title="Age range" section="age">
-        <RangeSelector
-          min={MIN_PREFERENCE_AGE}
-          max={MAX_PREFERENCE_AGE}
-          value={{ min: prefs.ageMin, max: prefs.ageMax }}
-          onChange={(value) => updatePreferences({ ageMin: value.min, ageMax: value.max })}
-        />
-      </PreferenceSection>
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-primary">{category.label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          Question {activeQuestionIndex + 1} of {category.sections.length}
+        </p>
+      </div>
+      <div className="flex gap-1.5">
+        {category.sections.map((_, index) => (
+          <span
+            key={index}
+            className={cn("h-1.5 flex-1 rounded-full", index <= activeQuestionIndex ? "bg-primary" : "bg-muted")}
+          />
+        ))}
+      </div>
 
-      <PreferenceSection title="Where they live" section="city">
-        <ChipSelect options={PREF_CITY} value={prefs.cityPref} onChange={(value) => updatePreferences({ cityPref: value })} />
-      </PreferenceSection>
+      {renderPreferenceSection(section, prefs)}
 
-      <PreferenceSection title="Cultural or religious preference" section="religion">
-        <ChipSelect options={PREF_RELIGION} value={prefs.religionPref} onChange={(value) => updatePreferences({ religionPref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Marriage timeline" section="timeline">
-        <ChipSelect options={PREF_TIMELINE} value={prefs.timelinePref} onChange={(value) => updatePreferences({ timelinePref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Views on children" section="children">
-        <ChipSelect options={PREF_CHILDREN} value={prefs.childrenPref} onChange={(value) => updatePreferences({ childrenPref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Future location plans" section="relocation">
-        <ChipSelect options={PREF_RELOCATION} value={prefs.relocationPref} onChange={(value) => updatePreferences({ relocationPref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Financial outlook" section="finance">
-        <ChipSelect options={PREF_FINANCE} value={prefs.financePref} onChange={(value) => updatePreferences({ financePref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Smoking" section="smoking">
-        <ChipSelect options={PREF_SMOKING} value={prefs.smokingPref} onChange={(value) => updatePreferences({ smokingPref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Drinking" section="drinking">
-        <ChipSelect options={PREF_DRINKING} value={prefs.drinkingPref} onChange={(value) => updatePreferences({ drinkingPref: value })} />
-      </PreferenceSection>
-
-      <PreferenceSection title="Food" section="food">
-        <ChipSelect options={PREF_FOOD} value={prefs.foodPref} onChange={(value) => updatePreferences({ foodPref: value })} />
-      </PreferenceSection>
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (activeQuestionIndex === 0) setActiveCategory(null);
+            else setActiveQuestionIndex((index) => index - 1);
+          }}
+          className="flex h-12 items-center justify-center gap-1.5 rounded-full border border-input text-sm font-bold text-foreground transition hover:bg-secondary"
+        >
+          <IconChevronLeft className="h-4 w-4" stroke={2.4} />
+          {activeQuestionIndex === 0 ? "Back" : "Previous"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setVisitedSections((prev) => new Set(prev).add(section));
+            if (isLastQuestion) setActiveCategory(null);
+            else setActiveQuestionIndex((index) => index + 1);
+          }}
+          className="flex h-12 items-center justify-center gap-1.5 rounded-full bg-primary text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+        >
+          {isLastQuestion ? "Finish" : "Next"}
+          <IconChevronRight className="h-4 w-4" stroke={2.4} />
+        </button>
+      </div>
     </>
   );
 }
