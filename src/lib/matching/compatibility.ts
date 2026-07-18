@@ -1,6 +1,7 @@
 import type { Preferences, PreferenceSectionKey } from "@/types/preferences";
 import type { Profile } from "@/types/profile";
 import type { CategoryScore } from "@/types/ranking";
+import type { CompatibilityModel } from "@/lib/matching/interfaces";
 import {
   CANNABIS,
   DRINKING,
@@ -158,6 +159,26 @@ export function compatibilityScore(breakdown: CategoryScore[]): number {
   const total = breakdown.reduce((sum, category) => sum + category.score * category.weight, 0);
   return Math.round(Math.max(0, Math.min(100, total)));
 }
+
+/**
+ * The rule-based CompatibilityModel — today's hand-tuned weights, expressed
+ * through the layered seam (extract features → score → clamp). A learned model
+ * would implement the same interface and swap in here without allocation ever
+ * knowing. Delegates to the functions above, so scores are byte-identical to
+ * the pre-seam code (verified in the sim).
+ */
+export const ruleCompatibilityModel: CompatibilityModel = {
+  extractFeatures(a, b) {
+    return { categories: compatibilityBreakdown(a, b) };
+  },
+  scoreFeatures(features) {
+    return compatibilityScore(features.categories);
+  },
+  score(a, b) {
+    const breakdown = compatibilityBreakdown(a, b);
+    return { compatibility: compatibilityScore(breakdown), breakdown };
+  }
+};
 
 const NEUTRAL_PREFS = new Set(["No preference", "Fine either way", "Whenever it feels right"]);
 

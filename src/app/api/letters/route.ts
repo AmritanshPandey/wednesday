@@ -51,9 +51,25 @@ export async function POST(req: Request) {
 
   const otherRef = weekRef.collection("matches").doc(myMatch.matchUid);
   if (mutual) {
+    // Both letters are in: open the 7-day chat window. connectedAt is the
+    // clock start; the activeChat pointer keeps the chat reachable after the
+    // next Wednesday's match arrives. Each side's pointer denormalizes the
+    // OTHER person's name/photo so the header renders without an extra read —
+    // myMatch.profile is matchUid's card; otherMatch.profile is mine.
+    const connectedAt = Date.now();
+    const otherMatch = (await otherRef.get()).data() as MatchDoc | undefined;
+    const display = (p: MatchDoc["profile"]) => ({
+      matchName: p?.name ?? "your match",
+      matchPhotoUrl: p?.localPhotoUrl ?? p?.photoUrl ?? null
+    });
+    const base = { threadId: myMatch.threadId, weekId, connectedAt };
+    const meActiveChat = { ...base, matchUid: myMatch.matchUid, ...display(myMatch.profile) };
+    const otherActiveChat = { ...base, matchUid: uid, ...display(otherMatch?.profile ?? null) };
     await Promise.all([
-      myMatchSnap.ref.set({ status: "connected" }, { merge: true }),
-      otherRef.set({ status: "connected" }, { merge: true })
+      myMatchSnap.ref.set({ status: "connected", connectedAt }, { merge: true }),
+      otherRef.set({ status: "connected", connectedAt }, { merge: true }),
+      db.collection("users").doc(uid).set({ activeChat: meActiveChat, updatedAt: connectedAt }, { merge: true }),
+      db.collection("users").doc(myMatch.matchUid).set({ activeChat: otherActiveChat, updatedAt: connectedAt }, { merge: true })
     ]);
   } else {
     await myMatchSnap.ref.set({ status: "letter_sent" }, { merge: true });

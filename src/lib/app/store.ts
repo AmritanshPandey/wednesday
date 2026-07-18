@@ -1,15 +1,16 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, type User } from "firebase/auth";
 import { collection, doc, onSnapshot, orderBy, query, type Unsubscribe } from "firebase/firestore";
 import { getDb, getFirebaseAuth, googleProvider } from "@/lib/firebase/client";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { computeWeekClock, type WeekClock } from "@/lib/week";
 import { blankPreferences, blankProfile } from "@/lib/app/defaults";
-import { threadIdFor, type LetterDoc, type MatchDoc, type PoolDoc, type RankingDoc, type UserDoc } from "@/lib/app/types";
+import { threadIdFor, type ActiveChat, type LetterDoc, type MatchDoc, type MessageDoc, type PoolDoc, type RankingDoc, type UserDoc } from "@/lib/app/types";
 import type { MatchResult, AllocationStats } from "@/types/match";
 import type { Letter } from "@/types/letter";
+import type { ChatMessage } from "@/types/message";
 import type { PoolEntry, RankingRound } from "@/types/ranking";
 import type { Preferences } from "@/types/preferences";
 import type { Profile } from "@/types/profile";
@@ -38,6 +39,9 @@ export type AppState = {
   matchProfile: Profile | null;
   stats: AllocationStats | null;
   letters: Letter[];
+  /** The live/most-recent 7-day chat, independent of the weekly match cycle. */
+  chat: ActiveChat | null;
+  messages: ChatMessage[];
 
   clock: WeekClock;
   dayIndex: number;
@@ -64,6 +68,8 @@ function initialState(): AppState {
     matchProfile: null,
     stats: null,
     letters: [],
+    chat: null,
+    messages: [],
     clock: computeWeekClock(),
     dayIndex: computeWeekClock().dayIndex
   };
@@ -74,6 +80,55 @@ const listeners = new Set<() => void>();
 
 function emit() {
   state = { ...state };
+  listeners.forEach((l) => l());
+}
+
+// ── Local edits awaiting confirmation ──────────────────────────────────────
+// Setup fields are edited far faster than Firestore round-trips: writes are
+// debounced, so a snapshot echoing an older write can land after the user has
+// typed more. These overlays hold the edits the server hasn't confirmed yet
+// and are re-applied on top of every incoming snapshot, so an in-flight write
+// can never roll the field back under the typist.
+let localProfileEdits: Partial<Profile> = {};
+let localPrefEdits: Partial<Preferences> = {};
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+/** Once the server echoes an edit back, stop overlaying it so that genuine
+ *  remote changes (another device, a server job) can flow through again. */
+function dropConfirmedEdits(serverProfile?: Partial<Profile>, serverPrefs?: Partial<Preferences>) {
+  for (const key of Object.keys(localProfileEdits) as (keyof Profile)[]) {
+    if (sameValue(serverProfile?.[key], localProfileEdits[key])) delete localProfileEdits[key];
+  }
+  for (const key of Object.keys(localPrefEdits) as (keyof Preferences)[]) {
+    if (sameValue(serverPrefs?.[key], localPrefEdits[key])) delete localPrefEdits[key];
+  }
+}
+
+function clearLocalEdits() {
+  localProfileEdits = {};
+  localPrefEdits = {};
+}
+
+/** Apply a profile edit locally and re-render now; Firestore catches up after. */
+export function applyProfileEdit(patch: Partial<Profile>) {
+  Object.assign(localProfileEdits, patch);
+  state.profile = { ...state.profile, ...patch };
+  emit();
+}
+
+/** Apply a preferences edit locally and re-render now. */
+export function applyPreferenceEdit(patch: Partial<Preferences>) {
+  Object.assign(localPrefEdits, patch);
+  state.preferences = { ...state.preferences, ...patch };
+  emit();
+}
+
+/** Apply a top-level state change (rounds, setup progress) and re-render now. */
+export function applyStateEdit(patch: Partial<AppState>) {
+  state = { ...state, ...patch };
   listeners.forEach((l) => l());
 }
 
@@ -134,7 +189,8 @@ function matchFromDoc(d: MatchDoc | undefined): { match: MatchResult | null; sta
       compatibility: d.compatibility,
       breakdown: d.breakdown ?? [],
       reasons: d.reasons ?? [],
-      status: d.status
+      status: d.status,
+      connectedAt: d.connectedAt ?? null
     },
     stats: (d as MatchDoc & { stats?: AllocationStats }).stats ?? null
   };
@@ -200,17 +256,55 @@ function subscribeLetters(uid: string, weekId: string, match: MatchDoc | null) {
   );
 }
 
+let messagesUnsub: Unsubscribe | null = null;
+let messagesThreadId: string | null = null;
+/** Live chat stream, driven by the user's activeChat pointer (NOT the weekly
+ *  match), so the 7-day window stays streaming after the next Wednesday's
+ *  match arrives. Read-only history still streams after the window closes. */
+function subscribeMessages(uid: string, chat: ActiveChat | null) {
+  if (!chat) {
+    messagesUnsub?.();
+    messagesUnsub = null;
+    messagesThreadId = null;
+    state.messages = [];
+    return;
+  }
+  if (chat.threadId === messagesThreadId) return; // already streaming this thread
+  messagesUnsub?.();
+  messagesThreadId = chat.threadId;
+  const db = getDb();
+  messagesUnsub = onSnapshot(
+    query(collection(db, "threads", chat.threadId, "messages"), orderBy("createdAt", "asc")),
+    (snap) => {
+      state.messages = snap.docs.map((docSnap) => {
+        const m = docSnap.data() as MessageDoc;
+        return {
+          id: docSnap.id,
+          author: m.authorUid === uid ? "user" : "match",
+          body: m.body,
+          createdAt: m.createdAt
+        } satisfies ChatMessage;
+      });
+      emit();
+    }
+  );
+}
+
 function subscribeUser(uid: string) {
   userUnsub?.();
   const db = getDb();
   userUnsub = onSnapshot(doc(db, "users", uid), (snap) => {
     const d = snap.data() as UserDoc | undefined;
     if (d) {
-      state.profile = { ...blankProfile(), ...d.profile, id: uid };
-      state.preferences = { ...blankPreferences(), ...d.preferences };
+      dropConfirmedEdits(d.profile, d.preferences);
+      // Unconfirmed local edits win over the snapshot — see localProfileEdits.
+      state.profile = { ...blankProfile(), ...d.profile, ...localProfileEdits, id: uid };
+      state.preferences = { ...blankPreferences(), ...d.preferences, ...localPrefEdits };
       state.setupComplete = Boolean(d.setupComplete);
-      state.setupStepReached = d.setupStepReached ?? 1;
+      state.setupStepReached = Math.max(d.setupStepReached ?? 1, state.setupStepReached);
       state.joinedWeek = d.joinedWeekId === state.clock.weekId;
+      state.chat = d.activeChat ?? null;
+      subscribeMessages(uid, state.chat);
     }
     emit();
   });
@@ -240,6 +334,10 @@ export function startLiveSync() {
     userUnsub?.();
     clearWeekSubs();
     lettersUnsub?.();
+    messagesUnsub?.();
+    messagesThreadId = null;
+    // Edits belong to whoever was signed in; never carry them across accounts.
+    clearLocalEdits();
 
     if (user) {
       state.profile = { ...blankProfile(), id: user.uid, name: user.displayName ?? "" };
@@ -255,6 +353,8 @@ export function startLiveSync() {
 export function stopLiveSync() {
   userUnsub?.();
   lettersUnsub?.();
+  messagesUnsub?.();
+  messagesThreadId = null;
   clearWeekSubs();
   if (clockTimer) clearInterval(clockTimer);
   started = false;
@@ -263,6 +363,12 @@ export function stopLiveSync() {
 // ── Auth actions ───────────────────────────────────────────────────────────
 export async function signInWithGoogle() {
   await signInWithPopup(getFirebaseAuth(), googleProvider);
+}
+
+/** Dev-only email/password sign-in for testing against the emulator with
+ *  seeded fake accounts. Not used by the real Google-only sign-in flow. */
+export async function signInWithEmail(email: string, password: string) {
+  await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
 }
 
 export async function signOutUser() {

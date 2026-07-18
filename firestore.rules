@@ -35,6 +35,23 @@ service cloud.firestore {
       match /rankings/{uid} {
         allow read, write: if isSelf(uid);
       }
+      // Immutable weekly profile freeze — the source of truth for matching.
+      match /snapshots/{uid} {
+        allow read: if isSelf(uid);
+        allow write: if false; // server only (freeze stage)
+      }
+      // Pipeline internals: job state, metrics, validation. Server-only, and
+      // not client-readable (operational data, not user-facing).
+      match /system/{doc} {
+        allow read, write: if false; // server only (Admin SDK bypasses)
+      }
+    }
+
+    // Post-introduction outcome events — the feedback/training signal. Written
+    // only via the server; a user may read their own.
+    match /outcomes/{weekId}/uid/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false; // server only (/api/outcomes)
     }
 
     match /threads/{threadId} {
@@ -45,6 +62,14 @@ service cloud.firestore {
         allow read: if signedIn()
           && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
         allow write: if false; // server only (via /api/letters)
+      }
+
+      // Chat messages within the 7-day window. Participants read; writes go
+      // only through /api/messages (Admin SDK), which enforces the window.
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/threads/$(threadId)).data.participants;
+        allow write: if false; // server only (via /api/messages)
       }
     }
   }

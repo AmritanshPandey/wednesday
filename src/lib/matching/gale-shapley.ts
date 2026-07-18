@@ -52,8 +52,9 @@ export function galeShapley(seekerPrefs: number[][], candidatePrefs: number[][])
 }
 
 /**
- * A pair (s, c) blocks the matching when both would rather be together than
- * stay with their assigned partners. A stable matching has zero.
+ * A pair (s, c) blocks the matching when both find each other acceptable and
+ * both would rather be together than stay with their assigned partners. A
+ * stable matching has zero.
  */
 export function countBlockingPairs(
   seekerScores: number[][],
@@ -65,6 +66,14 @@ export function countBlockingPairs(
   for (let seeker = 0; seeker < seekerScores.length; seeker += 1) {
     for (let candidate = 0; candidate < candidateScores.length; candidate += 1) {
       if (candidateOfSeeker[seeker] === candidate) continue;
+
+      // A zero score means the other person never made their list — they would
+      // not accept this introduction, so the pair cannot block. Without this,
+      // every unmatched seeker pairs with every unmatched candidate and the
+      // count reads as (unmatched)² rather than the real figure.
+      const mutuallyAcceptable = seekerScores[seeker][candidate] > 0 && candidateScores[candidate][seeker] > 0;
+      if (!mutuallyAcceptable) continue;
+
       const seekerCurrent = candidateOfSeeker[seeker];
       const candidateCurrent = seekerOfCandidate[candidate];
       const seekerPrefersOther =

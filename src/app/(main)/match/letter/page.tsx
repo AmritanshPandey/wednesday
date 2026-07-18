@@ -54,13 +54,13 @@ export default function LetterPage() {
           <WaxSeal size={52} className="mx-auto" />
           <h1 className="letterpress mt-4 font-serif text-3xl font-semibold">This introduction is mutual</h1>
           <p className="mx-auto mt-2 max-w-[34ch] text-sm leading-6 text-muted-foreground">
-            Two letters, one Wednesday. What happens next happens off the app — slowly, the way good things do.
+            Two letters, one Wednesday. Now the conversation is open for seven days — make them count.
           </p>
         </motion.div>
         <LetterPaper title={`You → ${profile.name}`} body={userLetter.body} day={userLetter.dayIndex} tilt="left" />
         <LetterPaper title={`${profile.name} → you`} body={matchLetter.body} day={matchLetter.dayIndex} tilt="right" accent />
-        <Link href="/home" className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground transition-transform duration-200 active:scale-[0.98]">
-          Back home
+        <Link href="/match/chat" className="mt-6 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground transition-transform duration-200 active:scale-[0.98]">
+          Continue in chat
         </Link>
       </div>
     );

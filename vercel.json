@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/build-pools", "schedule": "30 18 * * 3" },
-    { "path": "/api/cron/allocate", "schedule": "30 3 * * 3" }
+    { "path": "/api/cron/pipeline", "schedule": "30 18 * * 3" },
+    { "path": "/api/cron/pipeline", "schedule": "30 15 * * 2" },
+    { "path": "/api/cron/pipeline", "schedule": "30 3 * * 3" }
   ]
 }

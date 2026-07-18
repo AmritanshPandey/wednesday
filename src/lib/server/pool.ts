@@ -22,8 +22,20 @@ export function oppositeSide(a: UserDoc, b: UserDoc): boolean {
   return g1 !== g2;
 }
 
+/**
+ * How far past the shown pool the allocator may reach when every one of the
+ * user's 25 is introduced elsewhere. A peripheral profile — rare answers, so
+ * compatible with few — ranks its 25 favourites, all of whom are in demand and
+ * hold better offers, and would otherwise exhaust the list and match nobody,
+ * every week, forever. These ids are never shown or ranked; they only stop a
+ * quiet week from being structural. Past ~100 the gain flattens.
+ */
+export const ALLOCATION_DEPTH = 100;
+
 export type BuiltPool = {
   entries: PoolEntry[];
+  /** Ids ranked just below `entries` — allocator-only, see ALLOCATION_DEPTH. */
+  allocationTail: string[];
   candidatesConsidered: number;
   passedDealBreakers: number;
 };
@@ -31,7 +43,8 @@ export type BuiltPool = {
 /**
  * Weekly pipeline steps 1–2 for one real user against the week's other real
  * users: filter on both sides' deal-breakers, score mutually, drop below the
- * 50% floor, keep the top 25 with a denormalized public postcard each.
+ * 50% floor, keep the top 25 with a denormalized public postcard each, plus a
+ * lightweight tail of ids for the allocator to fall back on.
  */
 export function buildPoolFor(me: UserDoc, others: UserDoc[]): BuiltPool {
   const candidates = others.filter((other) => other.uid !== me.uid && oppositeSide(me, other));
@@ -42,21 +55,33 @@ export function buildPoolFor(me: UserDoc, others: UserDoc[]): BuiltPool {
       passesDealBreakers(other.preferences, other.profile, me.profile)
   );
 
-  const entries = mutual
+  // Score everyone eligible, then cut: postcards are only worth denormalizing
+  // for the 25 the user actually sees.
+  const scored = mutual
     .map((other) => {
       const breakdown = compatibilityBreakdown(me.profile, other.profile);
       const compatibility = Math.max(
         0,
         Math.min(97, compatibilityScore(breakdown) + softPreferenceAdjustment(me.preferences, me.profile, other.profile))
       );
-      const profile = { ...toPublicProfile(other.profile), id: other.uid };
-      return { profileId: other.uid, compatibility, breakdown, profile } satisfies PoolEntry;
+      return { other, breakdown, compatibility };
     })
-    .filter((entry) => entry.compatibility >= MIN_COMPATIBILITY)
-    .sort((a, b) => b.compatibility - a.compatibility)
-    .slice(0, POOL_TARGET);
+    .filter((s) => s.compatibility >= MIN_COMPATIBILITY)
+    .sort((a, b) => b.compatibility - a.compatibility);
 
-  return { entries, candidatesConsidered: candidates.length, passedDealBreakers: mutual.length };
+  const entries = scored.slice(0, POOL_TARGET).map(
+    ({ other, breakdown, compatibility }) =>
+      ({
+        profileId: other.uid,
+        compatibility,
+        breakdown,
+        profile: { ...toPublicProfile(other.profile), id: other.uid }
+      }) satisfies PoolEntry
+  );
+
+  const allocationTail = scored.slice(POOL_TARGET, ALLOCATION_DEPTH).map((s) => s.other.uid);
+
+  return { entries, allocationTail, candidatesConsidered: candidates.length, passedDealBreakers: mutual.length };
 }
 
 /** Human "why you fit" lines between two real profiles. */

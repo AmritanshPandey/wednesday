@@ -19,7 +19,8 @@ export function BottomNavigation() {
   const pathname = usePathname();
   const state = useDemoState();
 
-  if (pathname === "/match") return null;
+  // /match and the chat screen are immersive — they own the full height.
+  if (pathname === "/match" || pathname.startsWith("/match/chat")) return null;
 
   const weekHref = rankingComplete(state) || state.dayIndex >= REVEAL_DAY ? "/match" : "/rank";
   const navItems = [

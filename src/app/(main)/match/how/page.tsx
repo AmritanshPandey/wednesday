@@ -30,9 +30,11 @@ export default function HowThisMatchPage() {
     {
       title: "Score",
       figure: profile ? `${match.compatibility}%` : undefined,
-      detail: profile
-        ? `Every surviving pairing got a mutual score. You and ${profile.name} scored ${match.compatibility}% — you ranked ${ordinal(stats.yourRankOfMatch)} among your ${stats.poolSize}.`
-        : "Every surviving pairing got a mutual compatibility score."
+      detail: !profile
+        ? "Every surviving pairing got a mutual compatibility score."
+        : stats.yourRankOfMatch
+          ? `Every surviving pairing got a mutual score. You and ${profile.name} scored ${match.compatibility}% — you ranked ${ordinal(stats.yourRankOfMatch)} among your ${stats.poolSize}.`
+          : `Every surviving pairing got a mutual score. You and ${profile.name} scored ${match.compatibility}%. Everyone in the ${stats.poolSize} you ranked was introduced elsewhere this week, so we looked further down your eligible list to find them.`
     },
     {
       title: "Rank",
@@ -74,8 +76,7 @@ export default function HowThisMatchPage() {
   );
 }
 
-function ordinal(rank: number | null): string {
-  if (!rank) return "highly";
+function ordinal(rank: number): string {
   const suffix = rank % 10 === 1 && rank !== 11 ? "st" : rank % 10 === 2 && rank !== 12 ? "nd" : rank % 10 === 3 && rank !== 13 ? "rd" : "th";
   return `${rank}${suffix}`;
 }

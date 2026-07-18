@@ -111,18 +111,18 @@ export default function MatchPage() {
   }
 
   const showEnvelope = match.status === "revealed" && !opened;
-  const primaryActionLabel =
-    match.status === "revealed" ? "Write back" : match.status === "connected" ? "Read letters" : "View letter";
+  const isConnected = match.status === "connected";
+  const primaryActionLabel = match.status === "revealed" ? "Write back" : isConnected ? "Open chat" : "View letter";
+  const primaryActionHref = isConnected ? "/match/chat" : "/match/letter";
   const statusCopy =
     match.status === "revealed"
       ? `Make your move before Thursday ${WEEK_DAYS[DEADLINE_DAY].date}.`
-      : match.status === "connected"
-        ? "Both letters are in. The introduction is mutual."
+      : isConnected
+        ? "Both letters are in. You've got 7 days to talk."
         : "Your letter is posted.";
-  const privacyCopy =
-    match.status === "connected"
-      ? "The rest happens off the app, at your pace."
-      : "Replies stay private until it is mutual.";
+  const privacyCopy = isConnected
+    ? "After 7 days the chat becomes a keepsake."
+    : "Replies stay private until it is mutual.";
 
   const containerClass = showEnvelope ? "px-6 pb-[15rem]" : "min-h-dvh flex px-6";
 
@@ -257,7 +257,7 @@ export default function MatchPage() {
 
               <div className="mt-4">
                 <Link
-                  href="/match/letter"
+                  href={primaryActionHref}
                   className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm"
                 >
                   <IconPencil className="h-5 w-5" stroke={2} />

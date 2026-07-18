@@ -30,46 +30,80 @@ export async function getJoinedUsers(weekId: string): Promise<UserDoc[]> {
   return snap.docs.map((d) => d.data() as UserDoc);
 }
 
+/** The batch pipeline's canonical roster: everyone marked active for the week.
+ *  Falls back to the legacy joinedWeekId query for docs written before the
+ *  status flag existed, so migration is seamless. */
+export async function getActiveUsers(weekId: string): Promise<UserDoc[]> {
+  const byStatus = await adminDb()
+    .collection("users")
+    .where("status", "==", "active")
+    .where("activeWeekId", "==", weekId)
+    .get();
+  if (!byStatus.empty) return byStatus.docs.map((d) => d.data() as UserDoc);
+  return getJoinedUsers(weekId);
+}
+
 export async function getUser(uid: string): Promise<UserDoc | null> {
   const snap = await adminDb().collection("users").doc(uid).get();
   return snap.exists ? (snap.data() as UserDoc) : null;
 }
 
-/** Build (or rebuild) one user's pool from the week's other joined users, and
- *  seed an empty ranking with the pool dealt into rounds of five. */
-export async function buildAndWritePool(weekId: string, me: UserDoc, others: UserDoc[]): Promise<void> {
-  const { entries, candidatesConsidered, passedDealBreakers } = buildPoolFor(me, others);
-  const db = adminDb();
+/** Which ranking docs already exist for a week — so the pool stage seeds a
+ *  fresh ranking only for newcomers and never clobbers a user's drag-order. */
+export async function getExistingRankingIds(weekId: string): Promise<Set<string>> {
+  const snap = await adminDb().collection("weeks").doc(weekId).collection("rankings").select().get();
+  return new Set(snap.docs.map((d) => d.id));
+}
 
-  const poolDoc: PoolDoc = {
-    uid: me.uid,
-    weekId,
-    entries,
-    candidatesConsidered,
-    passedDealBreakers,
-    builtAt: Date.now()
-  };
-  await db.collection("weeks").doc(weekId).collection("pools").doc(me.uid).set(poolDoc);
-
-  // Deal into rounds of five (round-robin, mirroring the client buildRounds).
-  const ids = entries.map((e) => e.profileId);
+/** Deal a pool's ids into rounds of five (round-robin, mirroring the client
+ *  buildRounds), for a fresh ranking doc. */
+function dealRounds(ids: string[]): RankingDoc["rounds"] {
   const roundCount = Math.max(1, Math.ceil(ids.length / 5));
   const buckets: string[][] = Array.from({ length: roundCount }, () => []);
   ids.forEach((id, i) => buckets[i % roundCount].push(id));
-  const rounds = buckets.map((bucket, i) => ({
+  return buckets.map((bucket, i) => ({
     round: i + 1,
     isFinal: false,
     profileIds: bucket,
     rankedOrder: [...bucket],
     submitted: false
   }));
+}
 
+/** Pure: build one user's pool doc (+ a fresh ranking doc unless they already
+ *  have one). No I/O, so the batched pipeline can compute many then commit in
+ *  bulk. `hasRanking` guards against clobbering a user's drag-order. */
+export function poolAndRankingDocs(
+  weekId: string,
+  me: UserDoc,
+  others: UserDoc[],
+  hasRanking: boolean
+): { pool: PoolDoc; ranking: RankingDoc | null } {
+  const { entries, allocationTail, candidatesConsidered, passedDealBreakers } = buildPoolFor(me, others);
+  const pool: PoolDoc = {
+    uid: me.uid,
+    weekId,
+    entries,
+    allocationTail,
+    candidatesConsidered,
+    passedDealBreakers,
+    builtAt: Date.now()
+  };
+  const ranking: RankingDoc | null = hasRanking
+    ? null
+    : { uid: me.uid, weekId, rounds: dealRounds(entries.map((e) => e.profileId)), submitted: false, updatedAt: Date.now() };
+  return { pool, ranking };
+}
+
+/** Legacy single-user pool write (used by the pre-pipeline join path). The
+ *  batch pipeline uses poolAndRankingDocs + a bulk commit instead. */
+export async function buildAndWritePool(weekId: string, me: UserDoc, others: UserDoc[]): Promise<void> {
+  const db = adminDb();
   const rankingRef = db.collection("weeks").doc(weekId).collection("rankings").doc(me.uid);
-  const existing = await rankingRef.get();
-  if (!existing.exists) {
-    const rankingDoc: RankingDoc = { uid: me.uid, weekId, rounds, submitted: false, updatedAt: Date.now() };
-    await rankingRef.set(rankingDoc);
-  }
+  const hasRanking = (await rankingRef.get()).exists;
+  const { pool, ranking } = poolAndRankingDocs(weekId, me, others, hasRanking);
+  await db.collection("weeks").doc(weekId).collection("pools").doc(me.uid).set(pool);
+  if (ranking) await rankingRef.set(ranking);
 }
 
 export async function getPools(weekId: string): Promise<Map<string, PoolDoc>> {

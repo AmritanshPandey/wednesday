@@ -20,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils/cn";
 import { ChipMultiSelect, ChipSelect } from "@/components/ui/chip";
+import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ import {
   FITNESS,
   FOODS,
   GENDERS,
+  INDUSTRIES,
   INTENTS,
   INTERESTS,
   LANGUAGES,
@@ -64,6 +66,7 @@ import {
   QUALIFICATIONS,
   RELIGIONS,
   RELOCATION,
+  ROLES,
   SMOKING,
   TAX_BRACKETS,
   TIMELINES,
@@ -361,11 +364,21 @@ export default function SetupStepPage() {
           <FieldBlock label="What best describes your work right now?">
             <ChipSelect options={WORK_STATUSES} value={profile.workStatus} onChange={(value) => set({ workStatus: value })} />
           </FieldBlock>
-          <FieldBlock label="What's your current role?">
-            <Input value={profile.role} onChange={(event) => set({ role: event.target.value })} />
+          <FieldBlock label="What's your current role?" help="Start typing — we'll suggest as you go, or keep your own wording.">
+            <Combobox
+              value={profile.role}
+              onChange={(role) => set({ role })}
+              options={ROLES}
+              placeholder="e.g. Product Manager"
+            />
           </FieldBlock>
-          <FieldBlock label="Which industry do you work in?">
-            <Input value={profile.industry} onChange={(event) => set({ industry: event.target.value })} />
+          <FieldBlock label="Which industry do you work in?" help="Start typing to see suggestions.">
+            <Combobox
+              value={profile.industry}
+              onChange={(industry) => set({ industry })}
+              options={INDUSTRIES}
+              placeholder="e.g. Fintech"
+            />
           </FieldBlock>
           <FieldBlock label="What does your work life usually look like?">
             <ChipSelect options={WORK_LIVES} value={profile.workLife} onChange={(value) => set({ workLife: value })} />
@@ -872,7 +885,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
   switch (section) {
     case "age":
       return (
-        <PreferenceSection title="Age range" section="age">
+        <PreferenceSection title="Their age range" section="age">
           <RangeSelector
             min={MIN_PREFERENCE_AGE}
             max={MAX_PREFERENCE_AGE}
@@ -889,7 +902,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "religion":
       return (
-        <PreferenceSection title="Cultural or religious preference" section="religion">
+        <PreferenceSection title="Their faith or culture" section="religion">
           <ChipSelect
             options={PREF_RELIGION}
             value={prefs.religionPref}
@@ -899,7 +912,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "timeline":
       return (
-        <PreferenceSection title="Marriage timeline" section="timeline">
+        <PreferenceSection title="Their timeline" section="timeline">
           <ChipSelect
             options={PREF_TIMELINE}
             value={prefs.timelinePref}
@@ -909,7 +922,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "children":
       return (
-        <PreferenceSection title="Views on children" section="children">
+        <PreferenceSection title="Their views on children" section="children">
           <ChipSelect
             options={PREF_CHILDREN}
             value={prefs.childrenPref}
@@ -919,7 +932,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "relocation":
       return (
-        <PreferenceSection title="Future location plans" section="relocation">
+        <PreferenceSection title="Their openness to relocating" section="relocation">
           <ChipSelect
             options={PREF_RELOCATION}
             value={prefs.relocationPref}
@@ -929,7 +942,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "finance":
       return (
-        <PreferenceSection title="Financial outlook" section="finance">
+        <PreferenceSection title="Their financial outlook" section="finance">
           <ChipSelect
             options={PREF_FINANCE}
             value={prefs.financePref}
@@ -939,7 +952,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "smoking":
       return (
-        <PreferenceSection title="Smoking" section="smoking">
+        <PreferenceSection title="Their smoking" section="smoking">
           <ChipSelect
             options={PREF_SMOKING}
             value={prefs.smokingPref}
@@ -949,7 +962,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "drinking":
       return (
-        <PreferenceSection title="Drinking" section="drinking">
+        <PreferenceSection title="Their drinking" section="drinking">
           <ChipSelect
             options={PREF_DRINKING}
             value={prefs.drinkingPref}
@@ -959,7 +972,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "cannabis":
       return (
-        <PreferenceSection title="Cannabis" section="cannabis">
+        <PreferenceSection title="Their cannabis use" section="cannabis">
           <ChipSelect
             options={PREF_CANNABIS}
             value={prefs.cannabisPref}
@@ -969,7 +982,7 @@ function renderPreferenceSection(section: PreferenceSectionKey, prefs: Preferenc
       );
     case "food":
       return (
-        <PreferenceSection title="Food" section="food">
+        <PreferenceSection title="Their food preference" section="food">
           <ChipSelect options={PREF_FOOD} value={prefs.foodPref} onChange={(value) => updatePreferences({ foodPref: value })} />
         </PreferenceSection>
       );

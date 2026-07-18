@@ -7,3 +7,11 @@ dist
 .vercel
 .env*.local
 !.env.local.example
+
+# Throwaway market simulations — see scratch-market-sim.mjs
+scratch-*
+
+# Firebase emulator artifacts
+*-debug.log
+.firebase/
+firebase-export-*

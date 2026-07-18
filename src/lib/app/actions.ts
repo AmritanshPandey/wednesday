@@ -3,6 +3,9 @@
 import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { getDb, getFirebaseAuth } from "@/lib/firebase/client";
 import {
+  applyPreferenceEdit,
+  applyProfileEdit,
+  applyStateEdit,
   getAppState,
   getDevOffset,
   nowWithOffset,
@@ -106,28 +109,29 @@ async function ensureUserDoc() {
 }
 
 export function updateProfile(patch: Partial<Profile>) {
-  Object.assign(getAppState().profile, patch);
+  applyProfileEdit(patch);
   pendingProfile = { ...pendingProfile, ...patch };
   scheduleUserWrite();
 }
 
 export function updatePreferences(patch: Partial<Preferences>) {
-  Object.assign(getAppState().preferences, patch);
+  applyPreferenceEdit(patch);
   pendingPrefs = { ...pendingPrefs, ...patch };
   scheduleUserWrite();
 }
 
 export function toggleDealBreaker(section: PreferenceSectionKey) {
   const prefs = getAppState().preferences;
-  prefs.dealBreakers[section] = !prefs.dealBreakers[section];
-  pendingPrefs = { ...pendingPrefs, dealBreakers: { ...prefs.dealBreakers } };
+  const dealBreakers = { ...prefs.dealBreakers, [section]: !prefs.dealBreakers[section] };
+  applyPreferenceEdit({ dealBreakers });
+  pendingPrefs = { ...pendingPrefs, dealBreakers };
   scheduleUserWrite();
 }
 
 export function reachSetupStep(step: number) {
   const uid = requireUid();
   const next = Math.max(getAppState().setupStepReached, step);
-  getAppState().setupStepReached = next;
+  applyStateEdit({ setupStepReached: next });
   if (uid) void updateDoc(userRef(uid), { setupStepReached: next }).catch(() => ensureUserDoc());
 }
 
@@ -165,7 +169,7 @@ export function setRoundOrder(roundNumber: number, order: string[]) {
   const uid = state.uid;
   if (!uid) return;
   const rounds = state.rounds.map((r) => (r.round === roundNumber && !r.submitted ? { ...r, rankedOrder: order } : r));
-  state.rounds = rounds;
+  applyStateEdit({ rounds });
   void setDoc(rankingRef(state.clock.weekId, uid), { uid, weekId: state.clock.weekId, rounds, updatedAt: Date.now() }, { merge: true });
 }
 
@@ -175,7 +179,7 @@ export function submitRound(roundNumber: number) {
   if (!uid) return;
   const rounds = withRoundSubmitted(state.rounds, roundNumber);
   const submitted = rankingCompletePure(rounds);
-  state.rounds = rounds;
+  applyStateEdit({ rounds });
   void setDoc(
     rankingRef(state.clock.weekId, uid),
     { uid, weekId: state.clock.weekId, rounds, submitted, updatedAt: Date.now() },
@@ -198,6 +202,25 @@ export async function sendLetter(body: string): Promise<void> {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ weekId: state.clock.weekId, body })
   });
+}
+
+// ── The 7-day chat (after a mutual match) ────────────────────────────────────
+
+/** Post a chat message. Delivery is via the messages onSnapshot stream, so no
+ *  optimistic write is needed — the new message lands near-instantly. Returns
+ *  false if the send was rejected (e.g. the window has closed). */
+export async function sendMessage(body: string): Promise<boolean> {
+  const state = getAppState();
+  const chat = state.chat;
+  const text = body.trim();
+  if (!chat || !text) return false;
+  const token = await idToken();
+  const res = await fetch("/api/messages", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ weekId: chat.weekId, body: text })
+  });
+  return res.ok;
 }
 
 // ── Photo upload (Cloudflare R2) ─────────────────────────────────────────────

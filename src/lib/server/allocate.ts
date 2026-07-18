@@ -3,6 +3,7 @@ import "server-only";
 import { countBlockingPairs, galeShapley } from "@/lib/matching/gale-shapley";
 import { MIN_COMPATIBILITY } from "@/lib/matching/market";
 import { compatibilityBreakdown, compatibilityScore } from "@/lib/matching/compatibility";
+import { computeNoMatchAdvice } from "@/lib/matching/no-match-advice";
 import { buildRankedIds } from "@/lib/app/ranking-logic";
 import { reasonsFor } from "@/lib/server/pool";
 import { threadIdFor, toPublicProfile, type PoolDoc, type RankingDoc, type UserDoc } from "@/lib/app/types";
@@ -23,27 +24,46 @@ export type MatchOutcome = {
 };
 
 /** Effective preference order over the opposite side: the user's submitted
- *  ranking first, then any remaining pool members by compatibility. */
+ *  ranking first, then the rest of the shown pool by compatibility, then the
+ *  allocator-only tail — reached only once everyone they saw is taken. */
 function effectiveRanking(pool: PoolDoc | undefined, ranking: RankingDoc | undefined): string[] {
-  const compatOrder = (pool?.entries ?? []).map((e) => e.profileId); // already sorted desc
+  const shown = (pool?.entries ?? []).map((e) => e.profileId); // already sorted desc
+  const shownIds = new Set(shown);
   const ranked = ranking ? buildRankedIds(ranking.rounds) : [];
-  const seen = new Set(ranked);
-  const order = [...ranked];
-  for (const id of compatOrder) {
-    if (!seen.has(id)) {
-      order.push(id);
-      seen.add(id);
-    }
-  }
-  // Keep only ids that are actually in this user's pool (valid, ≥50%, opposite side).
-  const valid = new Set(compatOrder);
-  return order.filter((id) => valid.has(id));
+
+  const order: string[] = [];
+  const seen = new Set<string>();
+  const push = (id: string) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    order.push(id);
+  };
+
+  // Their own ranking wins, but only over people they were actually shown.
+  for (const id of ranked) if (shownIds.has(id)) push(id);
+  for (const id of shown) push(id);
+  for (const id of pool?.allocationTail ?? []) push(id);
+  return order;
+}
+
+/**
+ * Which side proposes this week. Deferred acceptance hands the proposing side
+ * its best stable outcome and the receiving side its worst — measurably so —
+ * which a fixed proposer would hand to the same gender every single week.
+ * Alternating keeps the promise the deal-breaker copy makes.
+ */
+export function proposingGenderFor(weekId: string): "Male" | "Female" {
+  const parsed = Date.parse(`${weekId}T00:00:00Z`);
+  if (Number.isNaN(parsed)) return "Male";
+  const weekIndex = Math.floor(parsed / 86_400_000 / 7);
+  return weekIndex % 2 === 0 ? "Male" : "Female";
 }
 
 /**
  * Weekly pipeline steps 3–4 across the whole real market: build each side's
  * preference lists from their rankings, run deferred acceptance, and read out
- * a symmetric introduction for everyone. Male proposes to Female for MVP.
+ * a symmetric introduction for everyone. The proposing side alternates weekly
+ * — see proposingGenderFor.
  */
 export function allocateWeek(
   weekId: string,
@@ -52,8 +72,10 @@ export function allocateWeek(
   rankings: Map<string, RankingDoc>
 ): MatchOutcome[] {
   const byUid = new Map(users.map((u) => [u.uid, u]));
-  const seekers = users.filter((u) => u.profile.gender === "Male");
-  const candidates = users.filter((u) => u.profile.gender === "Female");
+  const proposing = proposingGenderFor(weekId);
+  const receiving = proposing === "Male" ? "Female" : "Male";
+  const seekers = users.filter((u) => u.profile.gender === proposing);
+  const candidates = users.filter((u) => u.profile.gender === receiving);
   const seekerIndex = new Map(seekers.map((u, i) => [u.uid, i]));
   const candidateIndex = new Map(candidates.map((u, i) => [u.uid, i]));
 
@@ -95,6 +117,16 @@ export function allocateWeek(
       blockingPairs
     };
 
+    // Turn a no-match into actionable advice from the pool's own stats.
+    const noMatchReasons = (): string[] => {
+      const a = computeNoMatchAdvice(me.preferences, {
+        candidatesConsidered: baseStats.candidatesConsidered,
+        passedDealBreakers: baseStats.passedDealBreakers,
+        poolSize: baseStats.poolSize
+      });
+      return [a.headline, a.suggestion];
+    };
+
     const other = otherUid ? byUid.get(otherUid) : undefined;
     if (!other) {
       return {
@@ -103,7 +135,7 @@ export function allocateWeek(
         profile: null,
         compatibility: 0,
         breakdown: [],
-        reasons: [],
+        reasons: noMatchReasons(),
         status: "no_match",
         threadId: null,
         stats: baseStats
@@ -113,7 +145,11 @@ export function allocateWeek(
     const breakdown = compatibilityBreakdown(me.profile, other.profile);
     const compatibility = compatibilityScore(breakdown);
     const effRank = effectiveRanking(poolDoc, rankings.get(me.uid));
-    const yourRankOfMatch = effRank.indexOf(other.uid) + 1 || null;
+    const rank = effRank.indexOf(other.uid);
+    // effectiveRanking puts the shown pool first, so anything past it came from
+    // the tail — a rank there would be about someone they never saw.
+    const shownCount = poolDoc?.entries.length ?? 0;
+    const yourRankOfMatch = rank >= 0 && rank < shownCount ? rank + 1 : null;
     const status: MatchStatus = compatibility >= MIN_COMPATIBILITY ? "revealed" : "no_match";
 
     return {
@@ -122,7 +158,7 @@ export function allocateWeek(
       profile: status === "revealed" ? { ...toPublicProfile(other.profile), id: other.uid } : null,
       compatibility,
       breakdown,
-      reasons: status === "revealed" ? reasonsFor(me, other) : [],
+      reasons: status === "revealed" ? reasonsFor(me, other) : noMatchReasons(),
       status,
       threadId: status === "revealed" ? threadIdFor(weekId, me.uid, other.uid) : null,
       stats: { ...baseStats, yourRankOfMatch }
