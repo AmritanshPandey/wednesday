@@ -21,6 +21,11 @@ export const MARKET_THRESHOLDS = {
 /** Imbalance ratio above this raises an alert on the metrics doc. */
 export const IMBALANCE_ALERT_RATIO = 1.6;
 
+/** The founding cohort: a numbered edition of 500 spots per side, enforced
+ *  transactionally at registration. The thin-market thresholds above are the
+ *  go-live floor; this is the cap. */
+export const FOUNDING_CAP_PER_SIDE = 500;
+
 /**
  * How many users a single pipeline invocation processes before checkpointing
  * and yielding. Keeps each run inside the serverless time budget; the next

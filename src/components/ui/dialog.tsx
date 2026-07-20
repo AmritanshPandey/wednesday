@@ -41,7 +41,9 @@ export function Dialog({ open, onOpenChange, title, description, children, class
     <div
       className={cn(
         "fixed inset-0 z-50 flex justify-center bg-foreground/25 backdrop-blur-sm",
-        sheet ? "items-end" : "items-end pt-4 sm:items-center"
+        // Sheets hug the bottom on phones but become a centered, width-capped
+        // card on desktop — a full-viewport-wide sheet reads broken there.
+        sheet ? "items-end sm:items-center sm:p-6" : "items-end pt-4 sm:items-center"
       )}
       role="presentation"
     >
@@ -52,7 +54,7 @@ export function Dialog({ open, onOpenChange, title, description, children, class
         aria-describedby={description ? "dialog-description" : undefined}
         className={cn(
           sheet
-            ? "w-full rounded-t-[20px] border border-border bg-card p-4 pb-8 shadow-soft paper-postcard"
+            ? "w-full rounded-t-[20px] border border-border bg-card p-4 pb-8 shadow-soft paper-postcard sm:max-w-xl sm:rounded-[24px] sm:p-6"
             : "w-full max-w-md rounded-t-[24px] border border-border bg-card p-5 shadow-soft paper-texture",
           className
         )}

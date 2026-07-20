@@ -204,6 +204,27 @@ export async function sendLetter(body: string): Promise<void> {
   });
 }
 
+// ── Founding cohort ──────────────────────────────────────────────────────────
+
+export type ClaimResult = { spot: "claimed" | "waitlisted"; number: number | null } | null;
+
+/** Claim a numbered founding spot (server-enforced 500/side cap). Also applies
+ *  the basic info locally so setup step 1 arrives pre-filled. */
+export async function claimFoundingSpot(gender: string, dateOfBirth: string, city: string): Promise<ClaimResult> {
+  const token = await idToken();
+  if (!token) return null;
+  const res = await fetch("/api/claim-spot", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ gender, dateOfBirth, city })
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { spot: "claimed" | "waitlisted"; number: number | null };
+  applyProfileEdit({ gender, dateOfBirth, city });
+  applyStateEdit({ foundingSpot: data.spot, foundingNumber: data.number });
+  return data;
+}
+
 // ── The 7-day chat (after a mutual match) ────────────────────────────────────
 
 /** Post a chat message. Delivery is via the messages onSnapshot stream, so no

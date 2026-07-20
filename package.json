@@ -20,6 +20,7 @@
     "@dnd-kit/utilities": "latest",
     "@opentelemetry/api": "^1.9.1",
     "@tabler/icons-react": "latest",
+    "@types/three": "^0.185.1",
     "clsx": "latest",
     "date-fns": "latest",
     "firebase": "^12.16.0",
@@ -28,7 +29,8 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "tailwind-merge": "latest"
+    "tailwind-merge": "latest",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",

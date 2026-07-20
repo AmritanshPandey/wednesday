@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { computeWeekClock, type CyclePhase } from "@/lib/week";
 import { USE_BATCH_PIPELINE } from "@/lib/server/config";
 import { buildAndWritePool, getActiveUsers, isCronAuthorized, markWeekStatus } from "@/lib/server/data";
+import { checkMarketGate } from "@/lib/server/market";
 import { runStage } from "@/lib/server/pipeline";
 import { runAllocation } from "@/app/api/cron/allocate/route";
 import type { PipelineStage } from "@/lib/app/types";
@@ -36,6 +37,13 @@ export async function GET(req: Request) {
   // Legacy behaviour, phase-mapped so the same cron entry works pre-cutover.
   if (stage === "pools") {
     const users = await getActiveUsers(weekId);
+    // Same thin-market gate as the batch pipeline: pre-launch weeks build no
+    // pools on either path, so the waiting room and the cron always agree.
+    const gate = checkMarketGate(users);
+    if (!gate.ok) {
+      await markWeekStatus(weekId, "waiting");
+      return NextResponse.json({ ok: true, mode: "legacy", weekId, stage, gated: gate.reason, users: users.length });
+    }
     await Promise.all(users.map((me) => buildAndWritePool(weekId, me, users.filter((u) => u.uid !== me.uid))));
     await markWeekStatus(weekId, "ranking");
     return NextResponse.json({ ok: true, mode: "legacy", weekId, stage, users: users.length });

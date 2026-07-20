@@ -20,6 +20,11 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
+    // Founding-cohort ledger. Server-only; public numbers flow via /api/stats.
+    match /system/{doc} {
+      allow read, write: if false; // server only (Admin SDK bypasses)
+    }
+
     match /weeks/{weekId} {
       allow read: if signedIn();
       allow write: if false; // server only

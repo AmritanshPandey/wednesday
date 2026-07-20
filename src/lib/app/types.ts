@@ -29,7 +29,23 @@ export type UserDoc = {
    *  Lives on the user (not the weekly match) so the 7-day window stays
    *  reachable after the next Wednesday's match arrives. */
   activeChat?: ActiveChat | null;
+  /** Founding-cohort membership: "claimed" holds one of the 500 per-gender
+   *  spots; "waitlisted" means their side was full when they registered. */
+  foundingSpot?: "claimed" | "waitlisted";
+  /** Their number in the founding edition (1-based, per whole cohort). */
+  foundingNumber?: number;
+  spotClaimedAt?: number;
   createdAt: number;
+  updatedAt: number;
+};
+
+/** system/founding — the print-run ledger for the founding cohort. A single
+ *  doc so spot-claiming can be a plain transaction (no count() races). */
+export type FoundingDoc = {
+  male: number;
+  female: number;
+  maleCap: number;
+  femaleCap: number;
   updatedAt: number;
 };
 

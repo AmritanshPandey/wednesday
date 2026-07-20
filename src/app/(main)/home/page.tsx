@@ -19,6 +19,24 @@ export default function HomePage() {
   React.useEffect(() => {
     if (hydrated && !state.joinedWeek) router.replace("/");
   }, [hydrated, state.joinedWeek, router]);
+
+  // Pre-launch: joined but no pool and no match means the market hasn't gone
+  // live yet — the waiting room is the honest screen, not an empty week.
+  const preLaunch = hydrated && state.joinedWeek && state.pool.length === 0 && !state.match;
+  React.useEffect(() => {
+    if (!preLaunch) return;
+    let alive = true;
+    fetch("/api/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: { launched?: boolean } | null) => {
+        if (alive && s && !s.launched) router.replace("/waiting");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [preLaunch, router]);
+
   if (!state.joinedWeek) return null;
 
   const day = WEEK_DAYS[state.dayIndex];

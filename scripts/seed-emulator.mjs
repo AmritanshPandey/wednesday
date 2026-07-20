@@ -86,16 +86,32 @@ async function main() {
 
   const users = Array.from({ length: COUNT }, (_, i) => ({ ...makeUser(i), joinedWeekId: weekId, activeWeekId: weekId }));
 
-  // 1) Auth users + user docs.
+  // 1) Auth users + user docs (each holds a numbered founding spot).
+  let foundingNumber = 0;
   for (const u of users) {
     try {
       await auth.createUser({ uid: u.uid, email: u.email, password: PASSWORD, displayName: u.displayName });
     } catch (e) {
       if (!String(e).includes("already exists")) throw e;
     }
-    await db.collection("users").doc(u.uid).set(u);
+    foundingNumber += 1;
+    await db.collection("users").doc(u.uid).set({
+      ...u,
+      foundingSpot: "claimed",
+      foundingNumber,
+      spotClaimedAt: Date.now()
+    });
   }
-  console.log(`  ✓ ${users.length} accounts + profiles`);
+  const maleCount = users.filter((u) => u.profile.gender === "Male").length;
+  const femaleCount = users.filter((u) => u.profile.gender === "Female").length;
+  await db.collection("system").doc("founding").set({
+    male: maleCount,
+    female: femaleCount,
+    maleCap: 500,
+    femaleCap: 500,
+    updatedAt: Date.now()
+  });
+  console.log(`  ✓ ${users.length} accounts + profiles (founding ledger ${maleCount}m/${femaleCount}f)`);
 
   // 2) Pools + allocation for the week (real matching logic).
   const pools = new Map();

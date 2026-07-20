@@ -30,6 +30,9 @@ export type AppState = {
   setupComplete: boolean;
   setupStepReached: number;
   joinedWeek: boolean;
+  /** Founding-cohort state: undefined until they register interest. */
+  foundingSpot: "claimed" | "waitlisted" | null;
+  foundingNumber: number | null;
 
   pool: PoolEntry[];
   candidatesConsidered: number;
@@ -60,6 +63,8 @@ function initialState(): AppState {
     setupComplete: false,
     setupStepReached: 1,
     joinedWeek: false,
+    foundingSpot: null,
+    foundingNumber: null,
     pool: [],
     candidatesConsidered: 0,
     passedDealBreakers: 0,
@@ -303,6 +308,8 @@ function subscribeUser(uid: string) {
       state.setupComplete = Boolean(d.setupComplete);
       state.setupStepReached = Math.max(d.setupStepReached ?? 1, state.setupStepReached);
       state.joinedWeek = d.joinedWeekId === state.clock.weekId;
+      state.foundingSpot = d.foundingSpot ?? null;
+      state.foundingNumber = d.foundingNumber ?? null;
       state.chat = d.activeChat ?? null;
       subscribeMessages(uid, state.chat);
     }

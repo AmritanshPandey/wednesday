@@ -16,7 +16,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       // Cloudflare R2 default public buckets (pub-xxxx.r2.dev). Add your own
       // custom photo domain here too if you attach one.
-      { protocol: "https", hostname: "*.r2.dev" }
+      { protocol: "https", hostname: "*.r2.dev" },
+      // Placeholder photos for emulator-seeded fake members (dev only).
+      { protocol: "https", hostname: "i.pravatar.cc" }
     ]
   }
 };

@@ -194,7 +194,9 @@ export default function ReviewPage() {
           className="w-full"
           onClick={() => {
             completeSetupAndJoin();
-            router.push("/home");
+            // The waiting room forwards to /home the moment the market is live,
+            // so pre-launch joiners land somewhere honest instead of an empty week.
+            router.push("/waiting");
           }}
         >
           Verify and join this week

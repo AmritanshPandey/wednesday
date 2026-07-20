@@ -30,15 +30,11 @@ export function ProfileDetail({
 }) {
   return (
     <article className="space-y-4">
-      <div className="paper-texture relative overflow-hidden">
-        <div className="absolute right-3 top-3 flex items-start gap-2">
-
-        
-        </div>
+      <div className="relative">
         <ProfilePhoto
           name={profile.name}
           src={profile.localPhotoUrl ?? profile.photoUrl}
-          className="h-72 w-full rounded-[12px] border-4 border-card shadow-sm"
+          className="mx-auto aspect-[4/5] w-full max-w-[300px] rounded-[14px] border-4 border-card shadow-postcard"
         />
         <div className="mt-4 flex items-baseline gap-2">
           <h2 className="font-serif text-3xl text-primary">{profile.name},</h2>
